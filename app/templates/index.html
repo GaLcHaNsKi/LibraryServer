@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block content %}
+    <article class="index_article">
+        <div class="logo_image">
+            <img src="{{url_for('static', filename='images/logo.svg')}}" alt="Logo" width="500px">
+        </div>
+        <div>
+            <h1>{{title}}</h1>
+            <h2>Library</h2>
+        	<p><b>Library</b> - это электронная картотека, предназначенная для хранения данных о книгах в вашей библиотеке. Руководство можно прочитать здесь: <a href="/guide"><i>гайд</i></a>.</p>
+        	<p>Если приложение окажется полезным для кого-то, возможно, буду развивать его. По этому <strong>очень прошу</strong> писать отзывы на почту (она приведена ниже)!</p>
+
+            <p>Вы можете загрузить последнюю версию приложения, перейдя по ссылке: <a href="../releases/library_{{LASTEST_VERSION}}.apk">library_{{LASTEST_VERSION}}.apk</a>.</p>
+            <p>Более ранние версии можно найти <a href="/releases"><i>тут</i></a>.</p>
+        </div>
+    </article>
+{% endblock %}

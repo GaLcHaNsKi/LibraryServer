@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+	<title>{{title}}</title>
+	<link href="{{url_for('static', filename='styles/style1.css')}}" rel="stylesheet" />
+	<link rel="icon" href="{{url_for('static', filename='images/icon.svg')}}">
+  </head>
+  <body>
+    <header>
+      <nav>
+        <h1>
+            <a href="/">
+                <span>Library</span>
+                <!-- <img src="{{url_for('static', filename='images/icon.svg')}}" height="50px"> -->
+            </a>
+        </h1>
+        <ul>
+          <li><a href="/guide">Гайд</a></li>
+          <li><a href="/releases">Релизы</a></li>
+        </ul>
+    </nav>
+    </header>
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+    <footer>
+        <p>Пожелания и предложения пишите на почту: <a href="mailto: christianforother@gmail.com">christianforother@gmail.com</a>.</p>
+        <p>Library, 2024</p>
+    </footer>
+  </body>
+</html>

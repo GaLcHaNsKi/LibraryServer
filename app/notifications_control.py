@@ -1,4 +1,4 @@
-from sqlite3 import connect
+from sqlite3 import connect, OperationalError
 from app import DATABASE_PATH
 from .logs import elog
 

@@ -1,10 +1,10 @@
 from app import basedir
-from .create_ldb import create_ldb
+from app.trash.create_ldb import create_ldb
 from os import makedirs
 
 from sqlite3 import connect
 from app import DATABASE_PATH
-from .logs import elog
+
 
 def create_library(nickname):
     path_to_library = basedir + "libraries/" + nickname

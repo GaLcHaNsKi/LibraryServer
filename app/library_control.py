@@ -1,4 +1,4 @@
-from .create_ldb import create_ldb
+from app.trash.create_ldb import create_ldb
 from sqlite3 import connect, IntegrityError
 from .logs import elog
 
@@ -20,6 +20,7 @@ class Library:
               "publishing_house", "isbn1", "isbn2", "abstract", "book_genre", "age_of_reader")
     int_fields = ("writing_year", "transfer_year", "publication_year",
                   "edition_num", "isbn1", "isbn2", "quantity")
+    base_fields = ("inventory_num", "title_ru", "title_original", "author_ru", "author_in_original_lang", "book_genre")
 
     def __init__(self, path_to_db="db/library.db"):
         """
@@ -256,8 +257,16 @@ class Library:
 			Может вернуть меньше m книг.
 		"""
         try:
-            self.db_curs.execute(f"select * from {table} {'' if filter_=='' else 'where '+filter_} order by title_ru limit {m} offset ({n - 1})")
+            self.db_curs.execute(f"select inventory_num, title_ru, title_original, author_ru, author_in_original_lang, book_genre from {table} {'' if filter_=='' else 'where '+filter_} order by title_ru limit {m} offset ({n - 1})")
             return self.db_curs.fetchall()
+        except Exception as e:
+            elog(e, file="library_control", line=258)
+            return 1
+
+    def get_one(self, table, inventory_num):
+        try:
+            self.db_curs.execute(f"select * from {table} where inventory_num={inventory_num}")
+            return self.db_curs.fetchone()
         except Exception as e:
             elog(e, file="library_control", line=258)
             return 1
@@ -319,5 +328,24 @@ class Library:
             self.db_curs.execute(f"select * from {table} where {field} like '%{value}%'")
             return self.db_curs.fetchall()
         except Exception as e:
-            elog(e, file="library_control", line=333)
+            elog(e, file="library_control", line=311)
+            return 1
+
+    def get_places_list(self):
+        """
+             Возвращает список мест хранения книг
+        """
+        try:
+            self.db_curs.execute(f"select distinct location from available_books")
+            locations = []
+            for i in self.db_curs.fetchall():
+                locations += i
+
+            locations.sort()
+            if locations[0] == "":
+                locations = locations[1:] + [locations[0]]
+                
+            return locations
+        except Exception as e:
+            elog(e, file="library_control", line=325)
             return 1

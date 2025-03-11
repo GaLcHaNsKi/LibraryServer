@@ -59,7 +59,7 @@ footer {
     background-color: #212517;
 }
 footer a {
-    color: #DED3A6;
+    color: #8ec430;
     text-decoration: none;
 }
 
@@ -69,6 +69,11 @@ footer a {
 }
 
 @media screen and (max-width: 1000px) {
+    body {
+        font-size: 20px;
+        margin: 0;
+        font-family: 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
+    }
     header {
         background-color: #9bbe5e;
         font-size: 60px;

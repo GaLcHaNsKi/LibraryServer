@@ -33,7 +33,7 @@ from .middleware import middleware
         "dismiss" - уволить бибилиотекаря;
 
 """
-LASTEST_VERSION = "1-5"
+LASTEST_VERSION = "1-6"
 
 app.wsgi_app = middleware(app.wsgi_app)
 
@@ -60,6 +60,21 @@ def download_apk(apk):
     return send_file(file, download_name=apk, as_attachment=True)
 
 
+@app.route("/robots.txt")
+def robots():
+    return send_file(
+        basedir + "/robots.txt",
+        mimetype="text/plain"
+    )
+
+@app.route("/sitemap.xml")
+def sitemap():
+    return send_file(
+        basedir + "/sitemap.xml",
+        mimetype="application/xml"
+    )
+
+
 @app.route("/register", methods=["POST"])
 def register():
     """
@@ -73,9 +88,9 @@ def register():
     status = add_user(nickname, coded_password, role)
 
     if status == "error":  # ошибка
-        return {"status": "6"}
+        return {"status": 6}
     if status == "taken":  # никнейм занят
-        return {"status": "3"}
+        return {"status": 3}
 
     print(f"{nickname} was registered!")
 
@@ -84,7 +99,7 @@ def register():
         print("It is director!")
         create_library(nickname)
 
-    return {"status": "0"}
+    return {"status": 0}
     # return render_template("register.html", title="Registration")
 
 
@@ -93,7 +108,7 @@ def login():
     nickname = request.environ["user"]["nickname"]
     print(nickname, "logged in!")
 
-    return {"status": "success", "role": get_role(nickname)}
+    return {"status": 0, "role": get_role(nickname)}
 
 
 @app.route("/users", methods=["DELETE"])
@@ -188,8 +203,8 @@ def librarian_control_post():
         Для нанятия и увольнения библиотекарей
     """
     cmd = request.form["cmd"]
-    librarian = request.environ["user"]["nickname"]
-    director = request.form["director"]
+    librarian = request.form["librarian"]
+    director = request.environ["user"]["nickname"]
 
     director_id = getUserIDByNickname(director)
 
@@ -356,16 +371,8 @@ def library_control_get():
         for b in books:
             i += 1
             tmp = {}
-            if tbl != "autofill_table":
-                for f_j, field in enumerate(lib.fields):
-                    tmp[field] = b[f_j]
-
-                if tbl == "onhands_books":
-                    tmp["name"] = b[27]
-                    tmp["deadline"] = b[28]
-            else:
-                for f_j, field in enumerate(lib.common_fields):
-                    tmp[field] = b[f_j]
+            for f_j, field in enumerate(lib.base_fields):
+                tmp[field] = b[f_j]
 
             ret_books[str(i)] = tmp
 
@@ -377,28 +384,51 @@ def library_control_get():
     elif cmd == "get_one":
         tbl = request.args.get("table")
         inv_num = request.args.get("inventory_num")
-        b = lib.get_m_rows_from_n(table=tbl, m=1, n=int(request.args.get("n")), filter_=f"inventory_num='{inv_num}'")
+        b = lib.get_one(tbl, inv_num)
 
         if b == 1:
             return {"status": 6}
         if not b:
             return {"status": 7}
 
-        b = b[0]
         ret_book = {}
+        if tbl != "autofill_table":
+            for f_j, field in enumerate(lib.fields):
+                ret_book[field] = b[f_j]
 
-        for f_j, field in enumerate(lib.fields):
-            ret_book[field] = b[f_j]
-
-        if tbl == "onhands_books":
-            ret_book["name"] = b[27]
-            ret_book["deadline"] = b[28]
+            if tbl == "onhands_books":
+                ret_book["name"] = b[27]
+                ret_book["deadline"] = b[28]
+        else:
+            for f_j, field in enumerate(lib.common_fields):
+                ret_book[field] = b[f_j]
 
         ret_book["status"] = 0
 
         return ret_book
     else:
         return {"status": 5}
+
+
+@app.route("/library/places", methods=["GET"])
+def sendPlacesList():
+    librarian = request.environ["user"]["nickname"]
+    lib_name = is_hired(librarian)
+
+    if lib_name == "":
+        return {"status": 4}
+    elif lib_name == 1:
+        return {"status": 6}
+
+    path_to_ldb = basedir + f"libraries/{lib_name.strip()}/library.db"
+
+    # lib = Library(path_to_ldb)
+    places_list = Library(path_to_ldb).get_places_list()
+
+    if places_list == 1:
+        return {"status": 6}
+
+    return {"status": 0, "locations_list": places_list}
 
 
 @app.route("/library", methods=["DELETE"])

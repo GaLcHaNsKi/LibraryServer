@@ -1,8 +1,8 @@
 from flask import Flask
 import os
 
-OWNER = DIRECTOR = 1
-LIBRARIAN = 0
+OWNER = DIRECTOR = "OWNER"
+LIBRARIAN = "LIBRARIAN"
 
 basedir = os.path.abspath(os.path.dirname(__file__))[0:-3]
 DATABASE_PATH = os.path.join(basedir, "app.db")

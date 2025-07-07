@@ -37,7 +37,7 @@ def decode(encoded_message, filler):
         bigram = ""
 
         if y1 == y2:
-            bigram = table[y1][(x1-1)%11]+table[y1][(x2-1)%11]
+            bigram = table[y1][(x1-1) % 11]+table[y1][(x2-1) % 11]
         elif x1 == x2:
             bigram = table[(y1 - 1) % 6][x1] + table[(y2 - 1) % 6][x2]
         else:

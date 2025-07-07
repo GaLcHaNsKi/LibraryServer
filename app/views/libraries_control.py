@@ -36,7 +36,7 @@ def delLibraryByDirectorID(director_id):
     db.close()
     return 0
 
-def transferLibrary(director_id, librarian_id):
+def transferLibrary_(director_id, librarian_id):
     db = connect(DATABASE)
     db_curs = db.cursor()
     try:
@@ -56,7 +56,7 @@ def transferLibrary(director_id, librarian_id):
         db.execute(f"update users set role={LIBRARIAN}, director_id={librarian_id}, is_hired=1 where id={director_id}")
         # библиотекаря делаем директором
         db.execute(f"update users set role={OWNER}, director_id=null, is_hired=0 where id={librarian_id}")
-        # в libraries устанавливаем новго директора
+        # в libraries устанавливаем нового директора
         db.execute(f"update libraries set director_id={librarian_id} where id={library[0]}")
 
         # если есть библиотекари, ставим им нового директора

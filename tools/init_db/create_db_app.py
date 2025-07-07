@@ -1,4 +1,4 @@
-from db_client import cursor
+from tools.init_db.db_client import cursor
 
 def create():
     with open("tools/init_db/init-db.sql", 'r', encoding='utf-8') as file:

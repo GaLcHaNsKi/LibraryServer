@@ -28,7 +28,7 @@ CREATE TABLE IF NOT EXISTS notifications (
 	id int AUTO_INCREMENT primary key,
     author_id int references user.id on delete cascade,
     recipient_id int references user.id on delete cascade,
-    title varchar(15),
+    title varchar(25),
     content TEXT,
     type varchar(10),
     is_read bool default false
@@ -63,17 +63,18 @@ create table if not exists books (
 	age_of_reader varchar(15),
 	quantity int check (quantity >= 0),
 	location_id int references locations.id on delete set null,
+	shelve_id int references shelves.id on delete set null,
 	condition_id int references book_conditions.id on delete set null,
-    pages_quantity int check (pages_quantity > 0),
+    pages_quantity int check (pages_quantity > 0)
 	UNIQUE(library_id, inventory_num)
 );
 create table if not exists On_Hands_Books (
 	id int AUTO_INCREMENT primary key,
 	book_id int references books.id on delete cascade,
 	recipient_name varchar(20),
-    recipient_id int references users.id,
-	issue_date date,
-	return_date date,
+    recipient_id int references users.id on delete set null,
+	issue_date datetime default NOW(),
+	return_date datetime,
     check (issue_date <= return_date)
 );
 create table if not exists book_conditions (
@@ -125,8 +126,9 @@ create table if not exists Bible_Books (
 	Ru varchar(30),
 	en varchar(30)
 );
-create table if not exists Bible_Places (
+create table if not exists Bible_Place_in_book (
 	ID int auto_increment primary key,
+	book_id int references books.id on delete cascade,
 	Bible_book_id int references Bible_Books.id on delete cascade,
 	Chapter int,
 	Verse int, /* стих */

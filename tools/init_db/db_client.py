@@ -11,3 +11,7 @@ print("Database connected!")
 connection.autocommit(True)
 
 cursor = connection.cursor()
+
+
+if __name__ == "__main__":
+    pass

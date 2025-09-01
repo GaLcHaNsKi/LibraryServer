@@ -1,2 +1,5 @@
-/LibraryOld
-/LibraryOld2
+/__pycache__
+*/__pycache__
+*/*/__pycache__
+*/*/*/__pycache__
+/envir

@@ -415,7 +415,7 @@ class LibraryClient:
             elog(e, "library_service", "_updateBibleReferences")
             raise e
 
-    def getBooks(self, library: str | None, page: int = 1, take: int = 10, filters_: dict = None) -> list[dict] | int:
+    def getBooks(self, library: str | None, page: int = 1, take: int = 10, filters_: dict = None) -> dict | int:
         try:
             query = Book.query
 
@@ -464,21 +464,25 @@ class LibraryClient:
                     elif key == "document_type":
                         query = query.join(Book.document_type).filter(DocumentType.type_name.ilike(f"%{value}%"))
 
-            offset = (page - 1) * take
+            total = query.count()
+            offset = page * take
             books = query.order_by(Book.title_ru).offset(offset).limit(take).all()
 
-            return [
-                {
-                    "id": book.id,
-                    "inventory_num": book.inventory_num,
-                    "title_ru": book.title_ru,
-                    "title_original": book.title_original,
-                    "genre": book.book_genre.genre_name if book.book_genre else None,
-                    "author_ru": book.author_ru,
-                    "author_original": book.author_in_original_lang
-                }
-                for book in books
-            ]
+            return {
+                "pages": (total + take - 1) // take,
+                "data": [
+                    {
+                        "id": book.id,
+                        "inventory_num": book.inventory_num,
+                        "title_ru": book.title_ru,
+                        "title_original": book.title_original,
+                        "genre": book.book_genre.genre_name if book.book_genre else None,
+                        "author_ru": book.author_ru,
+                        "author_original": book.author_in_original_lang
+                    }
+                    for book in books
+                ]
+            }
 
         except Exception as e:
             db.session.rollback()

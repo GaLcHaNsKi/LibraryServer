@@ -12,7 +12,6 @@ READER = "READER"
 ROLES = [OWNER, LIBRARIAN, READER]
 
 basedir = os.path.abspath(os.path.dirname(__file__))[0:-3]
-DATABASE_PATH = os.path.join(basedir, "app.db")
 
 app = Flask(__name__)
 

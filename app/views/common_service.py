@@ -8,7 +8,9 @@ SuccessResponse = ({"message": "Success"}, 200)
 ForbiddenResponse = ({"error": "You cannot do this"}, 403)
 BookNotFoundResponse = ({"error": "Book not found"}, 404)
 LibraryNotFoundResponse = ({"error": "Library not found"}, 404)
-LibrarianNotFoundResponse = ({"error": "Librarian already hired"}, 409)
+UserNotFoundResponse = ({"error": "User not found"}, 404)
+LibrarianAlreadyHiredResponse = ({"error": "Librarian already hired"}, 409)
+LibrarianNotHiredResponse = ({"error": "You are not hired!"}, 403)
 InternalErrorResponse = ({"error": "Internal Server Error"}, 500)
 
 
@@ -34,18 +36,21 @@ def getRole(nickname):
 
 
 def isExists(nickname, coded_password=""):
-    user_id = 0
     try:
         if coded_password:
             hashed_password = hashPassword(coded_password)
             user = User.query.filter_by(nickname=nickname, password_hash=hashed_password).first()
+
+            if user:
+                return user.id
         else:
             user = User.query.filter_by(nickname=nickname).first()
-        if user:
-            user_id = user.id
+
+            if user:
+                return user.id
 
     except Exception as e:
         elog(e, file="common_service", function="isExists")
         return -1
 
-    return user_id
+    return 0

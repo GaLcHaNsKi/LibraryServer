@@ -9,7 +9,7 @@ users = sqlite.fetchall()
 
 for user in users:
     if user[2] == 1:
-        mysql.execute(f"insert into users (nickname, email, coded_password, role) values ('{user[0]}', null, '{user[1]}', '{'OWNER' if user[2] == 1 else 'LIBRARIAN'}')")
+        mysql.execute(f"insert into users (nickname, email, password_hash, role) values ('{user[0]}', null, '{user[1]}', '{'OWNER' if user[2] == 1 else 'LIBRARIAN'}')")
         id = mysql.lastrowid
         mysql.execute(f"insert into directors (user_id) values ({id})")
 

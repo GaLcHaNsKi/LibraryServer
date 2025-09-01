@@ -94,23 +94,22 @@ def isHired(librarian):
             "" - не нанят;
             "library name" - название библиотеки, если нанят.
         Иначе если librarian - директор, возвращается название его библиотеки.
-        Если такого нет, или произошла ошибка, возвращаем 1.
+        Если такого нет, или произошла ошибка, возвращаем 1 и 2, соответственно.
     """
-    # Check if user exists
-    if not isExists(librarian):
-        return 1
 
     try:
         # Query user by nickname
         user = User.query.filter_by(nickname=librarian).first()
+
         if not user:
-            return 1  # Shouldn't happen due to is_exists, but included for safety
+            return 1
 
         if user.role == Role.LIBRARIAN:
             # Query librarian with library join
             librarian_record = Librarian.query.filter_by(user_id=user.id).join(
                 Library, Librarian.library_id == Library.id, isouter=True
             ).add_columns(Library.name).first()
+
 
             if not librarian_record or not librarian_record[1]:  # No library associated
                 return ""
@@ -122,15 +121,16 @@ def isHired(librarian):
                 Library, Director.library_id == Library.id
             ).add_columns(Library.name).first()
 
+
             if not director_record or not director_record[1]:
-                return 1  # Unexpected, but handle gracefully
+                return 1
             return director_record[1]  # Library name
 
-        return 1  # Other roles (e.g., READER) are not handled
+        return 1
 
     except Exception as e:
         elog(e, "users_service", "isHired")
-        return 1
+        return 2
 
 
 def getUserIDByNickname(nickname):

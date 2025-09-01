@@ -1,6 +1,6 @@
 from flask import Blueprint, request
 
-from app.views.common_service import isExists, InternalErrorResponse, LibrarianNotFoundResponse, SuccessResponse
+from app.views.common_service import isExists, InternalErrorResponse, UserNotFoundResponse, SuccessResponse
 from app.views.notifications import sendNotify
 from app.views.users.users_service import getUserIDByNickname, isHired, hireLibrarian, dismissLibrarian, \
     getListOfLibrarians
@@ -24,8 +24,8 @@ def librarian_control_post():
     lib_name = isHired(librarian)
     if lib_name == 1:
         return InternalErrorResponse
-    elif lib_name != "":
-        return LibrarianNotFoundResponse
+    elif lib_name == 2:
+        return UserNotFoundResponse
 
     if hireLibrarian(director_id, librarian): return InternalErrorResponse
 
@@ -44,7 +44,7 @@ def librarians_delete():
     director = request.environ["user"]["nickname"]
 
     if not isExists(librarian):
-        return LibrarianNotFoundResponse
+        return UserNotFoundResponse
 
     if dismissLibrarian(librarian): return InternalErrorResponse
 

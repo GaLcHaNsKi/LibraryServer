@@ -1,17 +1,16 @@
 import json
 
 from werkzeug.wrappers import Request, Response
-
-from app import app
-from app.views.common_service import isExists, InternalErrorResponse
+from app.views.common_service import isExists, InternalErrorResponse, UserNotFoundResponse
 
 
-class auth_middleware():
-    def __init__(self, app):
+class AuthMiddleware:
+    def __init__(self, app, flask_app):
         self.app = app
+        self.flask_app = flask_app
 
     def __call__(self, environ, start_response):
-        with app.app_context():
+        with self.flask_app.app_context():
             request = Request(environ)
 
             if request.path in ["/", "/index", "/guide"] \
@@ -29,11 +28,14 @@ class auth_middleware():
 
             nickname, password = auth["username"], auth["password"]
 
-            id = isExists(nickname, password)
-            if id > 0:
-                environ["user"] = {"id": id, "nickname": nickname, "coded_password": password}
+            userId = isExists(nickname, password)
+            if userId > 0:
+                environ["user"] = {"id": userId, "nickname": nickname, "coded_password": password}
+
                 return self.app(environ, start_response)
-            elif id < 0:
-                res = Response(InternalErrorResponse, 500, mimetype="application/json")
+            elif userId < 0:
+                res = Response(json.dumps(InternalErrorResponse[0]), InternalErrorResponse[1], mimetype="application/json")
+            elif userId == 0:
+                res = Response(json.dumps(UserNotFoundResponse[0]), UserNotFoundResponse[1], mimetype="application/json")
 
             return res(environ, start_response)

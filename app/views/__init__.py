@@ -1,7 +1,7 @@
 from flask import render_template, send_file
 
 from app import app, basedir
-from app.middleware.auth_middleware import auth_middleware
+from app.middleware.auth_middleware import AuthMiddleware
 from app.middleware.librarymiddleware import LibraryMiddleware
 from app.views.auth import authBlueprint
 from app.views.forRick import rickBlueprint
@@ -35,8 +35,8 @@ from app.views.users import usersBlueprint
 
 LASTEST_VERSION = "1-6"
 
-app.wsgi_app = auth_middleware(app.wsgi_app)
-app.wsgi_app = LibraryMiddleware(app.wsgi_app)
+app.wsgi_app = LibraryMiddleware(app.wsgi_app, app)
+app.wsgi_app = AuthMiddleware(app.wsgi_app, app)
 
 app.register_blueprint(rickBlueprint)
 app.register_blueprint(authBlueprint, url_prefix="/auth")

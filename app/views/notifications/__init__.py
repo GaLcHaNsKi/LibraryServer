@@ -1,6 +1,6 @@
 from flask import Blueprint, request
 
-from app.views.common_service import isExists, InternalErrorResponse, SuccessResponse, LibrarianNotFoundResponse
+from app.views.common_service import isExists, InternalErrorResponse, SuccessResponse, UserNotFoundResponse
 from app.views.notifications.notifications_service import sendNotify, deleteNotify, getNotify, haveNotify
 from app.views.users.users_service import isHired
 
@@ -43,7 +43,7 @@ def write_offer():
     elif lib_name == 1:
         return InternalErrorResponse
     else:
-        return LibrarianNotFoundResponse
+        return UserNotFoundResponse
 
     return SuccessResponse
 

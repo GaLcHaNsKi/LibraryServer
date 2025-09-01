@@ -1,10 +1,11 @@
 from datetime import datetime
 
-from flask import Blueprint, request, json, jsonify
+from flask import Blueprint, request
+import json
 
 from app import OWNER
 from app.views.common_service import InternalErrorResponse, SuccessResponse, BookNotFoundResponse, \
-    LibraryNotFoundResponse, getRole, isExists, LibrarianNotFoundResponse, ForbiddenResponse
+    LibraryNotFoundResponse, getRole, isExists, UserNotFoundResponse, ForbiddenResponse
 from app.views.library.dropbox_operations import uploadToDropbox
 from app.views.library.library_service import LibraryClient
 from app.views.notifications import sendNotify
@@ -132,17 +133,21 @@ def edit_book(bookId):
 
 
 @libraryBlueprint.route("/books/all", methods=["POST"])
-async def get_books():
+def get_books():
     library = request.environ["user"]["library"]
 
-    page = request.args.get("page", 1)
-    take = request.args.get("take", 10)
+    page = request.args.get("page", 0, int)
+    take = request.args.get("take", 10, int)
 
-    filters = await jsonify(request.form.get("filters")).json
+    filters_str = request.form.get("filters")
+    filters = json.loads(filters_str) if filters_str else {}
 
     books = LibraryClient.getBooks(library, page, take, filters)
+
     if books == -1:
         return LibraryNotFoundResponse
+    elif books == 1:
+        return InternalErrorResponse
 
     return books
 
@@ -197,7 +202,7 @@ def transfer_library():
     successor_id = isExists(successor)
 
     if not successor_id:
-        return LibrarianNotFoundResponse
+        return UserNotFoundResponse
 
     code = LibraryClient.transferLibrary(director_id, successor_id)
 

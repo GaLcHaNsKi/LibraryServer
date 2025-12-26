@@ -57,30 +57,29 @@ class Notification(db.Model):
 class BookGenre(db.Model):
     __tablename__ = 'book_genres'
     id = db.Column(db.Integer, primary_key=True)
-    genre_name = db.Column(db.String(15), unique=True)
+    genre_name = db.Column(db.String(50), unique=True)
     description = db.Column(db.Text)
 
 
 class DocumentType(db.Model):
     __tablename__ = 'document_types'
     id = db.Column(db.Integer, primary_key=True)
-    type_name = db.Column(db.String(15), unique=True)
+    type_name = db.Column(db.String(50), unique=True)
     description = db.Column(db.Text)
 
 
 class BookCondition(db.Model):
     __tablename__ = 'book_conditions'
     id = db.Column(db.Integer, primary_key=True)
-    library_id = db.Column(db.Integer, db.ForeignKey('libraries.id', ondelete="CASCADE"))
-    condition_name = db.Column(db.String(15))
-    __table_args__ = (db.UniqueConstraint('library_id', 'condition_name'),)
+    condition_name = db.Column(db.String(50))
+    __table_args__ = (db.UniqueConstraint('condition_name'),)
 
 
 class Place(db.Model):
     __tablename__ = 'places'
     id = db.Column(db.Integer, primary_key=True)
     library_id = db.Column(db.Integer, db.ForeignKey('libraries.id', ondelete="CASCADE"))
-    place_name = db.Column(db.String(15), nullable=False)
+    place_name = db.Column(db.String(50), nullable=False)
     description = db.Column(db.Text)
     __table_args__ = (db.UniqueConstraint('library_id', 'place_name'),)
 
@@ -88,7 +87,7 @@ class Place(db.Model):
 class Shelf(db.Model):
     __tablename__ = 'shelves'
     id = db.Column(db.Integer, primary_key=True)
-    shelve_name = db.Column(db.String(15), nullable=False)
+    shelve_name = db.Column(db.String(50), nullable=False)
     description = db.Column(db.Text)
     place_id = db.Column(db.Integer, db.ForeignKey('places.id', ondelete="CASCADE"))
     __table_args__ = (db.UniqueConstraint('place_id', 'shelve_name'),)
@@ -99,12 +98,12 @@ class Book(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     library_id = db.Column(db.Integer, db.ForeignKey('libraries.id', ondelete="CASCADE"), nullable=False)
     is_on_hand = db.Column(db.Boolean, default=False)
-    inventory_num = db.Column(db.String(15), nullable=False)
+    inventory_num = db.Column(db.String(50), nullable=False)
     title_ru = db.Column(db.Text)
     title_original = db.Column(db.Text)
     series = db.Column(db.Text)
-    lang_of_book = db.Column(db.String(15))
-    lang_original = db.Column(db.String(15))
+    lang_of_book = db.Column(db.String(50))
+    lang_original = db.Column(db.String(50))
     author_ru = db.Column(db.String(20))
     author_in_original_lang = db.Column(db.String(20))
     writing_year = db.Column(db.Integer)
@@ -112,10 +111,10 @@ class Book(db.Model):
     translators = db.Column(db.Text)
     explanation_ru = db.Column(db.Text)
     applications = db.Column(db.Text)
-    dimensions = db.Column(db.String(15))
+    dimensions = db.Column(db.String(50))
     publication_year = db.Column(db.Integer)
     edition_num = db.Column(db.Integer)
-    publishing_house = db.Column(db.String(15))
+    publishing_house = db.Column(db.String(50))
     isbn1 = db.Column(db.String(13))  # можно добавить валидацию вручную
     isbn2 = db.Column(db.String(13))
     abstract = db.Column(db.Text)
@@ -123,7 +122,7 @@ class Book(db.Model):
     book_genre_id = db.Column(db.Integer, db.ForeignKey('book_genres.id', ondelete="SET NULL"))
     book_genre = db.relationship("BookGenre", backref="books")
     cover_photo_uuid = db.Column(db.String(40))
-    age_of_reader = db.Column(db.String(15))
+    age_of_reader = db.Column(db.String(50))
     quantity = db.Column(db.Integer)
     location_id = db.Column(db.Integer, db.ForeignKey('places.id', ondelete="SET NULL"))
     shelve_id = db.Column(db.Integer, db.ForeignKey('shelves.id', ondelete="SET NULL"))
@@ -140,6 +139,11 @@ class Book(db.Model):
         backref="book",
         cascade="all, delete-orphan"
     )
+    # Relationships for convenience used across services
+    document_type = db.relationship("DocumentType", backref="books", foreign_keys=[document_type_id])
+    location = db.relationship("Place", backref="books", foreign_keys=[location_id])
+    shelve = db.relationship("Shelf", backref="books", foreign_keys=[shelve_id])
+    condition = db.relationship("BookCondition", backref="books", foreign_keys=[condition_id])
     __table_args__ = (
         db.UniqueConstraint('library_id', 'inventory_num'),
         CheckConstraint('transfer_year > 1000'),
@@ -176,18 +180,11 @@ class Keyword(db.Model):
     pages = db.Column(db.Text)
 
 
-class Topic(db.Model):
-    __tablename__ = 'topics'
-    id = db.Column(db.Integer, primary_key=True)
-    topic_name = db.Column(db.String(15), nullable=False)
-    description = db.Column(db.Text)
-
-
 class BookTopic(db.Model):
     __tablename__ = 'books_topics'
     id = db.Column(db.Integer, primary_key=True)
     book_id = db.Column(db.Integer, db.ForeignKey('books.id', ondelete="CASCADE"))
-    topic_id = db.Column(db.Integer, db.ForeignKey('topics.id', ondelete="CASCADE"))
+    topic_name = db.Column(db.String(15), nullable=False)
     pages = db.Column(db.Text)
 
 
@@ -206,3 +203,4 @@ class BiblePlaceInBook(db.Model):
     chapter = db.Column(db.Integer)
     verse = db.Column(db.Integer)
     pages = db.Column(db.Text)
+    bible_book = db.relationship("BibleBook", backref="bible_places")

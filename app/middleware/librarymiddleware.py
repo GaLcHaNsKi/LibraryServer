@@ -4,6 +4,7 @@ from flask import Response
 from werkzeug.wrappers import Request
 from app.views.common_service import UserNotFoundResponse, InternalErrorResponse, LibrarianNotHiredResponse
 from app.views.users.users_service import isHired
+from app.models import Library
 
 
 class LibraryMiddleware:
@@ -31,6 +32,9 @@ class LibraryMiddleware:
                 response = Response(json.dumps(LibrarianNotHiredResponse[0]), LibrarianNotHiredResponse[1], mimetype="application/json")
                 return response(environ, start_response)
 
+            library = Library.query.filter_by(name=library).first()
+            
             environ["user"]["library"] = library
+            environ["user"]["libraryId"] = library.id
 
             return self.app(environ, start_response)

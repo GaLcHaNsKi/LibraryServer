@@ -13,7 +13,7 @@ class AuthMiddleware:
         with self.flask_app.app_context():
             request = Request(environ)
 
-            if request.path in ["/", "/index", "/guide"] \
+            if request.path.startswith(("/", "/index", "/guide", "/apidocs")) \
                     or "static" in request.path \
                     or "for_ricks_db" in request.path \
                     or "releases" in request.path \

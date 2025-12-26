@@ -4,11 +4,11 @@ from app import app, basedir
 from app.middleware.auth_middleware import AuthMiddleware
 from app.middleware.librarymiddleware import LibraryMiddleware
 from app.views.auth import authBlueprint
-from app.views.forRick import rickBlueprint
 from app.views.librarians import librariansBlueprint
 from app.views.library import libraryBlueprint
 from app.views.notifications import notificationsBlueprint
 from app.views.users import usersBlueprint
+from app.views.reference_tables import referencesBlueprint
 
 """
     Возвращаемые значения:
@@ -38,12 +38,12 @@ LASTEST_VERSION = "1-6"
 app.wsgi_app = LibraryMiddleware(app.wsgi_app, app)
 app.wsgi_app = AuthMiddleware(app.wsgi_app, app)
 
-app.register_blueprint(rickBlueprint)
 app.register_blueprint(authBlueprint, url_prefix="/auth")
 app.register_blueprint(usersBlueprint, url_prefix="/users")
 app.register_blueprint(notificationsBlueprint, url_prefix="/notifications")
 app.register_blueprint(librariansBlueprint, url_prefix="/librarians")
 app.register_blueprint(libraryBlueprint, url_prefix="/library")
+app.register_blueprint(referencesBlueprint, url_prefix="/references")
 
 
 @app.route("/")

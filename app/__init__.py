@@ -1,5 +1,6 @@
 from flask import Flask
 from flask_cors import CORS
+from flasgger import Swagger
 import os
 
 from flask_sqlalchemy import SQLAlchemy
@@ -20,7 +21,7 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 app.config.from_object("config_wtf")
 CORS(app, resources={r"/*": {"origins": "*"}})
-
+    
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
 
@@ -34,3 +35,8 @@ migrate = Migrate(app, db)
 
 from app import models
 from app import views
+from app.tools.init_db.fill_reference_tables import fillReferenceTables
+swagger = Swagger(app)
+
+with app.app_context():
+    fillReferenceTables()

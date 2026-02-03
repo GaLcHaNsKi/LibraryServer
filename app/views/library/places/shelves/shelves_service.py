@@ -2,19 +2,14 @@ from app.views.logs import elog
 from app import db
 from app.models import Library, Shelf
 
-def getShelves(library: str, placeId: int) -> list[dict] | int:
+def getShelves(placeId: int) -> list[dict] | int:
     try:
-        lib = Library.query.filter_by(name=library).first()
-        if not lib:
-            return -1
-
         shelves = Shelf.query.filter_by(place_id=placeId).order_by(Shelf.shelve_name).all()
 
         return [
             {
                 "id": shelf.id,
-                "shelve_name": shelf.shelve_name,
-                "description": shelf.description
+                "shelve_name": shelf.shelve_name
             } for shelf in shelves
         ]
 
@@ -40,14 +35,11 @@ def getShelveById(shelveId: int) -> dict | int:
         return 1
 
 
-def addShelf(library: str, placeId: int, shelf_name: str, description: str) -> int:
+def addShelf(placeId: int, shelf_name: str, description: str) -> int:
     try:
-        lib = Library.query.filter_by(name=library).first()
-        if not lib:
-            return -1
-
         shelf = Shelf(place_id=placeId, shelve_name=shelf_name, description=description)
         db.session.add(shelf)
+        db.session.commit()
         return 0
 
     except Exception as e:
@@ -62,6 +54,7 @@ def editShelf(shelveId: int, shelf_name: str, description: str) -> int:
 
         shelf.shelve_name = shelf_name
         shelf.description = description
+        db.session.commit()
         return 0
 
     except Exception as e:
@@ -76,6 +69,7 @@ def deleteShelf(shelveId: int) -> int:
             return -1
 
         db.session.delete(shelf)
+        db.session.commit()
         return 0
 
     except Exception as e:

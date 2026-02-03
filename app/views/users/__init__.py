@@ -7,6 +7,19 @@ usersBlueprint = Blueprint("users", __name__)
 
 @usersBlueprint.route("/", methods=["DELETE"])
 def delete_user():
+    """
+    ---
+    tags:
+        - users
+    summary: Delete current user
+    responses:
+            200:
+                description: Success
+            403:
+                description: Director cannot be deleted
+            500:
+                description: Internal Server Error
+    """
     nickname = request.environ["user"]["nickname"]
     code = deleteUser(nickname)
 

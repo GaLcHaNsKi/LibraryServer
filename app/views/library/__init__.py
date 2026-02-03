@@ -14,6 +14,19 @@ libraryBlueprint.register_blueprint(booksBlueprint, url_prefix="/books")
 
 @libraryBlueprint.route("/", methods=["DELETE"])
 def delete_library():
+    """
+    ---
+    tags:
+        - library
+    summary: Delete library (director only)
+    responses:
+            200:
+                description: Success
+            403:
+                description: Permission denied
+            500:
+                description: Internal Server Error
+    """
     director = request.environ["user"]["nickname"]
     director_id = request.environ["user"]["id"]
 
@@ -34,6 +47,28 @@ def delete_library():
 
 @libraryBlueprint.route("/transfer", methods=["PUT"])
 def transfer_library():
+    """
+    ---
+    tags:
+        - library
+    summary: Transfer library to librarian
+    consumes:
+        - application/x-www-form-urlencoded
+    parameters:
+      - in: formData
+        name: successor
+        required: true
+        type: string
+    responses:
+            200:
+                description: Success
+            403:
+                description: Forbidden
+            404:
+                description: User not found
+            500:
+                description: Internal Server Error
+    """
     director = request.environ["user"]["nickname"]
     director_id = getUserIDByNickname(director)
 

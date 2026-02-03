@@ -19,6 +19,8 @@ app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
+app.url_map.strict_slashes = False
+
 app.config.from_object("config_wtf")
 CORS(app, resources={r"/*": {"origins": "*"}})
     
@@ -36,7 +38,37 @@ migrate = Migrate(app, db)
 from app import models
 from app import views
 from app.tools.init_db.fill_reference_tables import fillReferenceTables
-swagger = Swagger(app)
+
+swagger_template = {
+    "swagger": "2.0",
+    "info": {
+        "title": "Library API",
+        "description": "API documentation for LibraryServer",
+        "version": "1.0.0",
+    },
+    "securityDefinitions": {
+        "basicAuth": {
+            "type": "basic"
+        }
+    }
+}
+
+swagger_config = {
+    "headers": [],
+    "specs": [
+        {
+            "endpoint": "apispec_1",
+            "route": "/apispec_1.json",
+            "rule_filter": lambda rule: True,
+            "model_filter": lambda tag: True,
+        }
+    ],
+    "static_url_path": "/flasgger_static",
+    "swagger_ui": True,
+    "specs_route": "/apidocs/",
+}
+
+swagger = Swagger(app, config=swagger_config, template=swagger_template)
 
 with app.app_context():
     fillReferenceTables()

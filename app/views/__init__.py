@@ -49,27 +49,82 @@ app.register_blueprint(referencesBlueprint, url_prefix="/references")
 @app.route("/")
 @app.route("/index")
 def index():
+    """
+    ---
+    tags:
+    - public
+    summary: Home page
+    responses:
+      200:
+        description: HTML page
+    security: []
+    """
     return render_template("index.html", title="Home", LASTEST_VERSION=LASTEST_VERSION)
 
 
 @app.route("/guide")
 def guide():
+    """
+    ---
+    tags:
+    - public
+    summary: Guide page
+    responses:
+      200:
+        description: HTML page
+    security: []
+    """
     return render_template("guide.html", title="Guide")
 
 
 @app.route("/releases")
 def releases():
+    """
+    ---
+    tags:
+    - public
+    summary: Releases page
+    responses:
+      200:
+        description: HTML page
+    security: []
+    """
     return render_template("releases.html", title="Releases")
 
 
 @app.route("/releases/<apk>")
 def download_apk(apk):
+    """
+    ---
+    tags:
+    - public
+    summary: Download APK
+    parameters:
+    - in: path
+      name: apk
+      required: true
+      type: string
+    responses:
+      200:
+        description: File download
+    security: []
+    """
     file = basedir + f"/releases/{apk}"
     return send_file(file, download_name=apk, as_attachment=True)
 
 
 @app.route("/robots.txt")
 def robots():
+    """
+    ---
+    tags:
+    - public
+    summary: Robots.txt
+    responses:
+      200:
+        description: Text file
+    security: []
+    """
     return send_file(
         basedir + "/robots.txt",
         mimetype="text/plain"
@@ -78,6 +133,16 @@ def robots():
 
 @app.route("/sitemap.xml")
 def sitemap():
+    """
+    ---
+    tags:
+    - public
+    summary: Sitemap
+    responses:
+      200:
+        description: XML file
+    security: []
+    """
     return send_file(
         basedir + "/sitemap.xml",
         mimetype="application/xml"

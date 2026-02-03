@@ -11,7 +11,26 @@ librariansBlueprint = Blueprint("librarians", __name__)
 @librariansBlueprint.route("/", methods=["POST"])
 def librarian_control_post():
     """
-        Для нанятия библиотекарей
+    ---
+    tags:
+    - librarians
+    summary: Hire librarian
+    consumes:
+    - application/x-www-form-urlencoded
+    parameters:
+      - in: formData
+        name: librarian
+        required: true
+        type: string
+    responses:
+            200:
+                description: Success
+            404:
+                description: Librarian not found
+            409:
+                description: Librarian already hired
+            500:
+                description: Internal Server Error
     """
     librarian = request.form["librarian"]
     director = request.environ["user"]["nickname"]
@@ -38,7 +57,26 @@ def librarian_control_post():
 @librariansBlueprint.route("/", methods=["DELETE"])
 def librarians_delete():
     """
-        Для увольнения библиотекарей
+    ---
+    tags:
+    - librarians
+    summary: Dismiss librarian
+    consumes:
+    - application/x-www-form-urlencoded
+    parameters:
+      - in: formData
+        name: librarian
+        required: true
+        type: string
+    responses:
+            200:
+                description: Success
+            403:
+                description: Not hired
+            404:
+                description: Librarian not found
+            500:
+                description: Internal Server Error
     """
     librarian = request.form["librarian"]
     director = request.environ["user"]["nickname"]
@@ -55,6 +93,17 @@ def librarians_delete():
 
 @librariansBlueprint.route("/", methods=["GET"])
 def librarian_control_get_list():
+    """
+    ---
+    tags:
+    - librarians
+    summary: List librarians for director
+    responses:
+            200:
+                description: Librarians list
+            500:
+                description: Internal Server Error
+    """
     director = request.environ["user"]["nickname"]
     director_id = getUserIDByNickname(director)
 

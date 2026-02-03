@@ -12,8 +12,7 @@ def getPlaces(libraryId: int) -> list[dict] | int:
         return [
             {
                 "id": location.id,
-                "place_name": location.place_name,
-                "description": location.description
+                "name": location.place_name
             } for location in locations
         ]
 
@@ -30,7 +29,7 @@ def getPlaceById(placeId: int) -> dict | int:
 
         return {
             "id": place.id,
-            "place_name": place.place_name,
+            "name": place.place_name,
             "description": place.description
         }
 
@@ -42,6 +41,7 @@ def addPlace(libraryId: int, place_name: str, description: str) -> int:
     try:
         place = Place(place_name=place_name, description=description, library_id=libraryId)
         db.session.add(place)
+        db.session.commit()
         return 0
 
     except Exception as e:
@@ -58,6 +58,7 @@ def editPlace(placeId: int, place_name: str, description: str) -> int:
             place.place_name = place_name
         if description:
             place.description = description
+        db.session.commit()
         return 0
 
     except Exception as e:
@@ -71,6 +72,7 @@ def deletePlace(placeId: int) -> int:
             return -1
 
         db.session.delete(place)
+        db.session.commit()
         return 0
 
     except Exception as e:

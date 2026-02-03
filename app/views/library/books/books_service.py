@@ -1,6 +1,7 @@
 import json
 
 from sqlalchemy import String, Boolean, Integer
+from sqlalchemy.orm import joinedload
 
 from app.views.common_service import isExists
 from app.views.logs import elog
@@ -402,9 +403,38 @@ class LibraryClient:
             # Apply filters
             if filters_:
                 for key, value in filters_.items():
-                    if hasattr(Book, key):
+                    if key == "topic":
+                        query = query.outerjoin(Book.topics_links).filter(
+                            BookTopic.topic_name.ilike(f"%{value}%"))
+                    elif key == "genre":
+                        query = query.outerjoin(Book.book_genre).filter(BookGenre.genre_name.ilike(f"%{value}%"))
+                    elif key == "keyword":
+                        query = query.outerjoin(Book.keywords).filter(Keyword.keyword.ilike(f"%{value}%"))
+                    elif key == "bible":
+                        query = query.outerjoin(Book.bible_places).outerjoin(BiblePlaceInBook.bible_book).filter(
+                            BibleBook.ru.ilike(f"%{value}%"))
+                    elif key == "location":
+                        try:
+                            location_id = int(value)
+                            query = query.filter(Book.location_id == location_id)
+                        except (ValueError, TypeError):
+                            query = query.outerjoin(Book.location).filter(Place.place_name.ilike(f"%{value}%"))
+                    elif key == "shelve":
+                        try:
+                            shelve_id = int(value)
+                            query = query.filter(Book.shelve_id == shelve_id)
+                        except (ValueError, TypeError):
+                            query = query.outerjoin(Book.shelve).filter(Shelf.shelve_name.ilike(f"%{value}%"))
+                    elif key == "condition":
+                        query = query.outerjoin(Book.condition).filter(BookCondition.condition_name.ilike(f"%{value}%"))
+                    elif key == "document_type":
+                        query = query.outerjoin(Book.document_type).filter(DocumentType.type_name.ilike(f"%{value}%"))
+                    elif hasattr(Book, key):
                         column = getattr(Book, key)
-                        col_type = getattr(Book.__table__.columns, key).type
+                        try:
+                            col_type = getattr(Book.__table__.columns, key).type
+                        except KeyError:
+                            continue
 
                         if isinstance(col_type, String):
                             query = query.filter(column.ilike(f"%{value}%"))
@@ -418,27 +448,19 @@ class LibraryClient:
                                 return 1  # Некорректный тип
                         else:
                             return 1  # Неподдерживаемый тип фильтра
-                    elif key == "topic":
-                        query = query.join(Book.topics_links).join(BookTopic.topic).filter(
-                            Topic.topic_name.ilike(f"%{value}%"))
-                    elif key == "genre":
-                        query = query.join(Book.book_genre).filter(BookGenre.genre_name.ilike(f"%{value}%"))
-                    elif key == "keyword":
-                        query = query.join(Book.keywords).filter(Keyword.keyword.ilike(f"%{value}%"))
-                    elif key == "bible":
-                        query = query.join(Book.bible_places).join(BiblePlaceInBook.bible_book).filter(
-                            BibleBook.ru.ilike(f"%{value}%"))
-                    elif key == "location":
-                        query = query.join(Book.location).filter(Place.place_name.ilike(f"%{value}%"))
-                    elif key == "shelve":
-                        query = query.join(Book.shelve).filter(Shelf.shelve_name.ilike(f"%{value}%"))
-                    elif key == "condition":
-                        query = query.join(Book.condition).filter(BookCondition.condition_name.ilike(f"%{value}%"))
-                    elif key == "document_type":
-                        query = query.join(Book.document_type).filter(DocumentType.type_name.ilike(f"%{value}%"))
 
             total = query.count()
             offset = page * take
+            
+            # Eager load relationships to avoid lazy loading issues
+            query = query.options(
+                joinedload(Book.book_genre),
+                joinedload(Book.location),
+                joinedload(Book.shelve),
+                joinedload(Book.condition),
+                joinedload(Book.document_type)
+            )
+            
             books = query.order_by(Book.title_ru).offset(offset).limit(take).all()
 
             return {

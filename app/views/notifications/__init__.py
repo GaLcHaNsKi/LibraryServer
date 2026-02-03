@@ -9,6 +9,38 @@ notificationsBlueprint = Blueprint("notifications", __name__)
 
 @notificationsBlueprint.route("/", methods=["POST"])
 def write_notify():
+    """
+    ---
+    tags:
+        - notifications
+    summary: Send notification
+    consumes:
+        - application/x-www-form-urlencoded
+    parameters:
+      - in: formData
+        name: recipient
+        required: true
+        type: string
+      - in: formData
+        name: title
+        required: true
+        type: string
+      - in: formData
+        name: text
+        required: true
+        type: string
+      - in: formData
+        name: cmd
+        required: true
+        type: string
+    responses:
+            200:
+                description: Success
+            404:
+                description: Recipient not found
+            500:
+                description: Internal Server Error
+    """
     author = request.environ["user"]["nickname"]
     recipient = request.form["recipient"]
     title = request.form["title"]
@@ -26,6 +58,38 @@ def write_notify():
 
 @notificationsBlueprint.route("/offer", methods=["POST"])
 def write_offer():
+    """
+    ---
+    tags:
+        - notifications
+    summary: Send offer notification
+    consumes:
+        - application/x-www-form-urlencoded
+    parameters:
+      - in: formData
+        name: recipient
+        required: true
+        type: string
+      - in: formData
+        name: title
+        required: true
+        type: string
+      - in: formData
+        name: text
+        required: true
+        type: string
+      - in: formData
+        name: cmd
+        required: true
+        type: string
+    responses:
+            200:
+                description: Success
+            404:
+                description: Recipient not found
+            500:
+                description: Internal Server Error
+    """
     author = request.environ["user"]["nickname"]
     recipient = request.form["recipient"]
     title = request.form["title"]
@@ -50,6 +114,22 @@ def write_offer():
 
 @notificationsBlueprint.route("/<id>", methods=["DELETE"])
 def delete_notify(id):
+    """
+    ---
+    tags:
+    - notifications
+    summary: Delete notification
+    parameters:
+    - in: path
+      name: id
+      required: true
+      type: integer
+    responses:
+      200:
+        description: Success
+      500:
+        description: Internal Server Error
+    """
     if deleteNotify(id):
         return InternalErrorResponse
 
@@ -58,6 +138,17 @@ def delete_notify(id):
 
 @notificationsBlueprint.route("/", methods=["GET"])
 def notify_get():
+    """
+    ---
+    tags:
+        - notifications
+    summary: Get notifications
+    responses:
+            200:
+                description: Notifications list
+            500:
+                description: Internal Server Error
+    """
     # для получения уведомлений
     recipient = request.environ["user"]["nickname"]
 

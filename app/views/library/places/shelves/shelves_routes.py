@@ -5,14 +5,24 @@ from flask import Blueprint, request
 shelvesBlueprint = Blueprint("shelves", __name__)
 
 @shelvesBlueprint.route("/", methods=["GET"])
-def sendShelvesList(placeId):
+def sendShelvesListRoute(placeId):
     """
-    
+    ---
+    tags:
+    - shelves
+    summary: List shelves for place
+    parameters:
+    - in: path
+      name: placeId
+      required: true
+      type: integer
+    responses:
+      200:
+        description: Shelves list
+      500:
+        description: Internal Server Error
     """
-    
-    libraryId = request.environ["user"]["libraryId"]
-
-    shelves_list = getShelves(libraryId, placeId)
+    shelves_list = getShelves(int(placeId))
 
     if shelves_list == 1:
         return InternalErrorResponse
@@ -20,7 +30,23 @@ def sendShelvesList(placeId):
     return shelves_list
 
 @shelvesBlueprint.route("/<shelveId>", methods=["GET"])
-def getShelveById(shelveId):
+def getShelveByIdRoute(shelveId):
+    """
+    ---
+    tags:
+    - shelves
+    summary: Get shelf by id
+    parameters:
+    - in: path
+      name: shelveId
+      required: true
+      type: integer
+    responses:
+      200:
+        description: Shelf
+      500:
+        description: Internal Server Error
+    """
     shelve = getShelveById(shelveId)
 
     if shelve == 1:
@@ -28,15 +54,57 @@ def getShelveById(shelveId):
 
     return shelve
 
-@shelvesBlueprint.route("/", methods=["DELETE"])
-def deleteShelf(shelveId):
+@shelvesBlueprint.route("/<shelveId>", methods=["DELETE"])
+def deleteShelfRoute(shelveId):
+    """
+    ---
+    tags:
+    - shelves
+    summary: Delete shelf
+    parameters:
+    - in: path
+      name: shelveId
+      required: true
+      type: integer
+    responses:
+      200:
+        description: Success
+      500:
+        description: Internal Server Error
+    """
     if deleteShelf(shelveId):
         return InternalErrorResponse
 
     return SuccessResponse
 
-@shelvesBlueprint.route("/", methods=["PUT"])
-def editShelf(shelveId):
+@shelvesBlueprint.route("/<shelveId>", methods=["PUT"])
+def editShelfRoute(shelveId):
+    """
+    ---
+    tags:
+    - shelves
+    summary: Edit shelf
+    consumes:
+    - application/x-www-form-urlencoded
+    parameters:
+    - in: path
+      name: shelveId
+      required: true
+      type: integer
+    - in: formData
+      name: shelf_name
+      required: false
+      type: string
+    - in: formData
+      name: description
+      required: false
+      type: string
+    responses:
+      200:
+        description: Success
+      500:
+        description: Internal Server Error
+    """
     shelf_name = request.form.get("shelf_name")
     description = request.form.get("description")
 
@@ -46,13 +114,37 @@ def editShelf(shelveId):
     return SuccessResponse
 
 @shelvesBlueprint.route("/", methods=["POST"])
-def addShelf(placeId):
-    libraryId = request.environ["user"]["libraryId"]
-
+def addShelfRoute(placeId):
+    """
+    ---
+    tags:
+    - shelves
+    summary: Add shelf
+    consumes:
+    - application/x-www-form-urlencoded
+    parameters:
+    - in: path
+      name: placeId
+      required: true
+      type: integer
+    - in: formData
+      name: shelf_name
+      required: true
+      type: string
+    - in: formData
+      name: description
+      required: false
+      type: string
+    responses:
+      200:
+        description: Success
+      500:
+        description: Internal Server Error
+    """
     shelf_name = request.form["shelf_name"]
     description = request.form.get("description")
 
-    if addShelf(libraryId, placeId, shelf_name, description):
+    if addShelf(int(placeId), shelf_name, description):
         return InternalErrorResponse
 
     return SuccessResponse

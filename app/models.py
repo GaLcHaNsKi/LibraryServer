@@ -165,7 +165,7 @@ class OnHandsBook(db.Model):
 class NotificationSetting(db.Model):
     __tablename__ = 'notification_settings'
     id = db.Column(db.Integer, primary_key=True)
-    library_id = db.Column(db.Integer, db.ForeignKey('libraries.id', ondelete="CASCADE"))
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete="CASCADE"), unique=True)
     notify_before_days = db.Column(db.Integer, default=1)
     notify_after_days = db.Column(db.Integer, default=0)
     is_every_day = db.Column(db.Boolean)

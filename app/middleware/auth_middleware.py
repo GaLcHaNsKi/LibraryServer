@@ -14,11 +14,11 @@ class AuthMiddleware:
             request = Request(environ)
 
             if request.path.startswith(("/index", "/guide", "/apidocs", "/socket.io")) \
-                    or "favicon.ico" in request.path \
+                    or request.path == "/favicon.ico" \
                     or "/" == request.path \
-                    or "static" in request.path \
-                    or "releases" in request.path \
-                    or "register" in request.path:
+                    or request.path.startswith("/static") \
+                    or "releases" == request.path.strip("/") \
+                    or request.path.startswith("/auth/register"):
                 return self.app(environ, start_response)
 
             res = Response('{"error":"Unauthorized"}', 401, mimetype="application/json")

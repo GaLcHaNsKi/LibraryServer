@@ -1,4 +1,5 @@
 import hashlib
+from werkzeug.security import generate_password_hash, check_password_hash
 
 from app.models import User
 from app.views.logs import elog
@@ -16,11 +17,7 @@ InternalErrorResponse = ({"error": "Internal Server Error"}, 500)
 
 
 def hashPassword(password):
-    password_bytes = password.encode('utf-8')
-    hash_object = hashlib.sha256(password_bytes)
-    hex_dig = hash_object.hexdigest()
-
-    return hex_dig
+    return generate_password_hash(password)
 
 
 def getRole(nickname):
@@ -38,16 +35,24 @@ def getRole(nickname):
 
 def isExists(nickname, coded_password=""):
     try:
-        if coded_password:
-            hashed_password = hashPassword(coded_password)
-            user = User.query.filter_by(nickname=nickname, password_hash=hashed_password).first()
+        user = User.query.filter_by(nickname=nickname).first()
 
-            if user:
-                return user.id
-        else:
-            user = User.query.filter_by(nickname=nickname).first()
-
-            if user:
+        if user:
+            if coded_password:
+                # Check backwards compatibility with sha256
+                password_bytes = coded_password.encode('utf-8')
+                hash_object = hashlib.sha256(password_bytes)
+                hex_dig = hash_object.hexdigest()
+                
+                if user.password_hash == hex_dig:
+                    # Update to new hashing transparently
+                    user.password_hash = hashPassword(coded_password)
+                    from app import db
+                    db.session.commit()
+                    return user.id
+                elif check_password_hash(user.password_hash, coded_password):
+                    return user.id
+            else:
                 return user.id
 
     except Exception as e:

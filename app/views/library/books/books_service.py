@@ -53,6 +53,17 @@ class LibraryClient:
             if not library_record:
                 return 1  # Library not found
 
+            if not location_id or not shelve_id:
+                return 2  # Missing location or shelf
+
+            place = Place.query.filter_by(id=location_id, library_id=libraryId).first()
+            if not place:
+                return 3  # Invalid location
+
+            shelf = Shelf.query.filter_by(id=shelve_id, place_id=location_id).first()
+            if not shelf:
+                return 4  # Invalid shelf
+
             # Create new book
             new_book = Book(
                 library_id=library_record.id,
@@ -125,7 +136,7 @@ class LibraryClient:
             elog(e, file="book_service", function="addBook")
             return 1
 
-    def issueBook(self, bookId, recipient_name, deadline):
+    def issueBook(self, bookId, libraryId, recipient_name, deadline):
         """
         Выдает книгу: уменьшает количество на 1 и добавляет запись в OnHandsBook.
         """
@@ -134,7 +145,7 @@ class LibraryClient:
             recipient_id = isExists(recipient_name)
 
             # Get book
-            book = Book.query.filter_by(id=bookId).first()
+            book = Book.query.filter_by(id=bookId, library_id=libraryId).first()
             if not book:
                 return -1
 
@@ -164,13 +175,13 @@ class LibraryClient:
             elog(e, "book_service", "issueBook")
             return 1
 
-    def returnBook(self, bookId) -> int:
+    def returnBook(self, bookId, libraryId) -> int:
         """
         Возвращает книгу: увеличивает количество на 1 и удаляет запись из OnHandsBook.
         """
         try:
             # Get book
-            book = Book.query.filter_by(id=bookId).first()
+            book = Book.query.filter_by(id=bookId, library_id=libraryId).first()
             if not book:
                 return -1
 
@@ -293,16 +304,17 @@ class LibraryClient:
             elog(e, "book_service", "getBookId")
             return 0
 
-    def deleteBook(self, bookId: int) -> int:
+    def deleteBook(self, bookId: int, libraryId: int) -> int:
         """
         Удаляет книгу по ID.
         Args:
             bookId (int): ID книги
+            libraryId (int): ID библиотеки
         Returns:
             int: 0 — успех, 1 — ошибка, -1 - книга не найдена
         """
         try:
-            book = Book.query.get(bookId)
+            book = Book.query.filter_by(id=bookId, library_id=libraryId).first()
             if not book:
                 return -1  # Книга не найдена
 
@@ -326,17 +338,33 @@ class LibraryClient:
         "pages_quantity"
     }
 
-    def editBook(self, bookId: int, changes: dict):
+    def editBook(self, bookId: int, libraryId: int, changes: dict):
         """
         Updates a book's fields.
         Args:
             bookId (int): ID книги
+            libraryId (int): ID библиотеки
             changes: Data to change.
         """
         try:
-            book = Book.query.filter_by(id=bookId).first()
+            book = Book.query.filter_by(id=bookId, library_id=libraryId).first()
             if not book:
                 return -1  # Book not found
+
+            if "location_id" in changes or "shelve_id" in changes:
+                loc_id = changes.get("location_id", book.location_id)
+                sh_id = changes.get("shelve_id", book.shelve_id)
+                
+                if not loc_id or not sh_id:
+                    return 2
+
+                place = Place.query.filter_by(id=loc_id, library_id=libraryId).first()
+                if not place:
+                    return 3
+                    
+                shelf = Shelf.query.filter_by(id=sh_id, place_id=loc_id).first()
+                if not shelf:
+                    return 4
 
             # Update book fields
             for field, value in changes.items():
@@ -543,9 +571,9 @@ class LibraryClient:
             elog(e, "book_service", "getBooks")
             return 1
 
-    def getBook(self, id: int) -> dict | int:
+    def getBook(self, id: int, libraryId: int) -> dict | int:
         try:
-            book = Book.query.filter_by(id=id).first()
+            book = Book.query.filter_by(id=id, library_id=libraryId).first()
 
             if not book:
                 return -1

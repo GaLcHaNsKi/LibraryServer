@@ -47,7 +47,8 @@ def getPlaceRoute(placeId):
       500:
         description: Internal Server Error
     """
-    place = getPlaceById(placeId)
+    libraryId = request.environ["user"]["libraryId"]
+    place = getPlaceById(libraryId, placeId)
 
     if place == 1:
         return InternalErrorResponse
@@ -116,10 +117,11 @@ def editPlaceRoute(placeId):
       500:
         description: Internal Server Error
     """
+    libraryId = request.environ["user"]["libraryId"]
     place_name = request.form.get("place_name")
     description = request.form.get("description")
 
-    if editPlace(placeId, place_name, description):
+    if editPlace(libraryId, placeId, place_name, description):
         return InternalErrorResponse
 
     return SuccessResponse
@@ -142,7 +144,8 @@ def deletePlaceRoute(placeId):
       500:
         description: Internal Server Error
     """
-    if deletePlace(placeId):
+    libraryId = request.environ["user"]["libraryId"]
+    if deletePlace(libraryId, placeId):
         return InternalErrorResponse
 
     return SuccessResponse

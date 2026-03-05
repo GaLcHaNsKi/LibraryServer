@@ -81,8 +81,14 @@ def addBookRoute():
         bible_references=data.get("bible_references", [])
     )
 
-    if code: 
+    if code == 1: 
         return InternalErrorResponse
+    elif code == 2:
+        return {"error": "Location and shelf are required"}, 400
+    elif code == 3:
+        return {"error": "Invalid location"}, 400
+    elif code == 4:
+        return {"error": "Invalid shelf"}, 400
 
     return SuccessResponse
 
@@ -120,6 +126,7 @@ def issueBookRoute(bookId):
       500:
         description: Internal Server Error
     """
+    libraryId = request.environ["user"]["libraryId"]
     recipient_name = request.form["name"]
     deadline_str = request.form["deadline"]
 
@@ -128,7 +135,7 @@ def issueBookRoute(bookId):
     except ValueError:
         return {"error": "Expected date for deadline"}, 400
 
-    code = LibraryClient.issueBook(bookId, recipient_name, deadline)
+    code = LibraryClient.issueBook(bookId, libraryId, recipient_name, deadline)
 
     if code == -1:
         return BookNotFoundResponse
@@ -158,7 +165,8 @@ def returnBookRoute(bookId):
       500:
         description: Internal Server Error
     """
-    code = LibraryClient.returnBook(bookId)
+    libraryId = request.environ["user"]["libraryId"]
+    code = LibraryClient.returnBook(bookId, libraryId)
 
     if code == -1:
         return BookNotFoundResponse
@@ -188,7 +196,8 @@ def deleteBookRoute(bookId):
       500:
         description: Internal Server Error
     """
-    code = LibraryClient.deleteBook(bookId)
+    libraryId = request.environ["user"]["libraryId"]
+    code = LibraryClient.deleteBook(bookId, libraryId)
 
     if code == -1:
         return BookNotFoundResponse
@@ -241,12 +250,18 @@ def editBookRoute(bookId):
         if photo_result:
             data["cover_photo_url"] = photo_result.get('url', '')
     
-    code = LibraryClient.editBook(bookId, data)
+    code = LibraryClient.editBook(bookId, request.environ["user"]["libraryId"], data)
 
     if code == -1:
         return BookNotFoundResponse
     elif code == 1:
         return InternalErrorResponse
+    elif code == 2:
+        return {"error": "Location and shelf are required"}, 400
+    elif code == 3:
+        return {"error": "Invalid location"}, 400
+    elif code == 4:
+        return {"error": "Invalid shelf"}, 400
 
     return SuccessResponse
 
@@ -323,7 +338,8 @@ def getBookRoute(bookId):
       500:
         description: Internal Server Error
     """
-    book = LibraryClient.getBook(bookId)
+    libraryId = request.environ["user"]["libraryId"]
+    book = LibraryClient.getBook(bookId, libraryId)
     if book == -1:
         return BookNotFoundResponse
       

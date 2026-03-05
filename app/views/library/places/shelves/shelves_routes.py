@@ -22,7 +22,8 @@ def sendShelvesListRoute(placeId):
       500:
         description: Internal Server Error
     """
-    shelves_list = getShelves(int(placeId))
+    libraryId = request.environ["user"]["libraryId"]
+    shelves_list = getShelves(libraryId, int(placeId))
 
     if shelves_list == 1:
         return InternalErrorResponse
@@ -47,7 +48,8 @@ def getShelveByIdRoute(shelveId):
       500:
         description: Internal Server Error
     """
-    shelve = getShelveById(shelveId)
+    libraryId = request.environ["user"]["libraryId"]
+    shelve = getShelveById(libraryId, shelveId)
 
     if shelve == 1:
         return InternalErrorResponse
@@ -72,7 +74,8 @@ def deleteShelfRoute(shelveId):
       500:
         description: Internal Server Error
     """
-    if deleteShelf(shelveId):
+    libraryId = request.environ["user"]["libraryId"]
+    if deleteShelf(libraryId, shelveId):
         return InternalErrorResponse
 
     return SuccessResponse
@@ -105,10 +108,11 @@ def editShelfRoute(shelveId):
       500:
         description: Internal Server Error
     """
+    libraryId = request.environ["user"]["libraryId"]
     shelf_name = request.form.get("shelf_name")
     description = request.form.get("description")
 
-    if editShelf(shelveId, shelf_name, description):
+    if editShelf(libraryId, shelveId, shelf_name, description):
         return InternalErrorResponse
 
     return SuccessResponse
@@ -141,10 +145,11 @@ def addShelfRoute(placeId):
       500:
         description: Internal Server Error
     """
+    libraryId = request.environ["user"]["libraryId"]
     shelf_name = request.form["shelf_name"]
     description = request.form.get("description")
 
-    if addShelf(int(placeId), shelf_name, description):
+    if addShelf(libraryId, int(placeId), shelf_name, description):
         return InternalErrorResponse
 
     return SuccessResponse

@@ -1,7 +1,7 @@
 from flask import Blueprint, request
 
 from app.views.common_service import isExists, InternalErrorResponse, SuccessResponse, UserNotFoundResponse
-from app.views.notifications.notifications_service import sendNotify, deleteNotify, getNotify, haveNotify
+from app.views.notifications.notifications_service import get_notification_settings, sendNotify, deleteNotify, getNotify, set_notification_settings
 from app.views.users.users_service import isHired
 
 notificationsBlueprint = Blueprint("notifications", __name__)
@@ -157,3 +157,74 @@ def notify_get():
         return InternalErrorResponse
 
     return {"data": ntfs}, 200
+
+
+@notificationsBlueprint.route("/settings", methods=["GET"])
+def get_notification_settings_route():
+    """
+    ---
+    tags:
+        - notifications
+    summary: Get current notification settings for the user
+    responses:
+            200:
+                description: Notification settings
+            500:
+                description: Internal Server Error
+    """
+    user_id = request.environ["user"]["id"]
+    
+    settings = get_notification_settings(user_id)
+
+    if settings == 1:
+        return InternalErrorResponse
+
+    return settings, 200
+
+
+@notificationsBlueprint.route("/settings", methods=["PUT"])
+def set_notification_settings_route():
+    """
+    ---
+    tags:
+        - notifications
+    summary: Set notification settings for the user
+    consumes:
+        - application/x-www-form-urlencoded
+    parameters:
+        - in: formData
+          name: notify_before_days
+          required: true
+          type: integer
+        - in: formData
+          name: notify_after_days
+          required: true
+          type: integer
+        - in: formData
+          name: is_every_day
+          required: true
+          type: boolean
+    responses:
+            200:
+                description: Success
+            400:
+                description: Invalid notification settings
+            500:
+                description: Internal Server Error
+    """
+    user_id = request.environ["user"]["id"]
+    
+    try:
+        notify_before_days = int(request.form.get("notify_before_days"))
+        notify_after_days = int(request.form.get("notify_after_days"))
+        is_every_day_str = request.form.get("is_every_day", "").lower()
+        is_every_day = is_every_day_str in ("true", "1", "yes")
+    except (ValueError, TypeError):
+        return {"error": "Invalid notification settings"}, 400
+
+    code = set_notification_settings(user_id, notify_before_days, notify_after_days, is_every_day)
+
+    if code != 0:
+        return InternalErrorResponse
+
+    return SuccessResponse

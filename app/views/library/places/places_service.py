@@ -21,9 +21,9 @@ def getPlaces(libraryId: int) -> list[dict] | int:
         return 1
 
 
-def getPlaceById(placeId: int) -> dict | int:
+def getPlaceById(libraryId: int, placeId: int) -> dict | int:
     try:
-        place = Place.query.filter_by(id=placeId).first()
+        place = Place.query.filter_by(id=placeId, library_id=libraryId).first()
         if not place:
             return -1
 
@@ -48,9 +48,9 @@ def addPlace(libraryId: int, place_name: str, description: str) -> int:
         elog(e, "library_service", "addPlace")
         return 1
 
-def editPlace(placeId: int, place_name: str, description: str) -> int:
+def editPlace(libraryId: int, placeId: int, place_name: str, description: str) -> int:
     try:
-        place = Place.query.filter_by(id=placeId).first()
+        place = Place.query.filter_by(id=placeId, library_id=libraryId).first()
         if not place:
             return -1
 
@@ -65,9 +65,9 @@ def editPlace(placeId: int, place_name: str, description: str) -> int:
         elog(e, "library_service", "editPlace")
         return 1
 
-def deletePlace(placeId: int) -> int:
+def deletePlace(libraryId: int, placeId: int) -> int:
     try:
-        place = Place.query.filter_by(id=placeId).first()
+        place = Place.query.filter_by(id=placeId, library_id=libraryId).first()
         if not place:
             return -1
 

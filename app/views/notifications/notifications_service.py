@@ -1,8 +1,51 @@
 from app import db
-from app.models import User, Notification
+from app.models import User, Notification, NotificationSetting
 from app.views.logs import elog
 from app.sockets import emit_notification
 from sqlalchemy.orm import aliased
+
+
+def get_notification_settings(user_id):
+    try:
+        setting = NotificationSetting.query.filter_by(user_id=user_id).first()
+        if not setting:
+            return {
+                "notify_before_days": 1,
+                "notify_after_days": 0,
+                "is_every_day": False
+            }
+        return {
+            "notify_before_days": setting.notify_before_days,
+            "notify_after_days": setting.notify_after_days,
+            "is_every_day": setting.is_every_day
+        }
+    except Exception as e:
+        elog(e, file="notifications_service", function="get_notification_settings")
+        return 1
+
+
+def set_notification_settings(user_id, notify_before_days, notify_after_days, is_every_day):
+    try:
+        setting = NotificationSetting.query.filter_by(user_id=user_id).first()
+        if not setting:
+            setting = NotificationSetting(
+                user_id=user_id,
+                notify_before_days=notify_before_days,
+                notify_after_days=notify_after_days,
+                is_every_day=is_every_day
+            )
+            db.session.add(setting)
+        else:
+            setting.notify_before_days = notify_before_days
+            setting.notify_after_days = notify_after_days
+            setting.is_every_day = is_every_day
+        db.session.commit()
+        return 0
+    except Exception as e:
+        db.session.rollback()
+        elog(e, file="notifications_service", function="set_notification_settings")
+        return 1
+    
 
 
 def sendNotify(author, recipient, title, content, type_):

@@ -1,10 +1,10 @@
 from app.views.logs import elog
 from app import db
-from app.models import Library, Shelf
+from app.models import Library, Shelf, Place
 
-def getShelves(placeId: int) -> list[dict] | int:
+def getShelves(libraryId: int, placeId: int) -> list[dict] | int:
     try:
-        shelves = Shelf.query.filter_by(place_id=placeId).order_by(Shelf.shelve_name).all()
+        shelves = Shelf.query.join(Place).filter(Shelf.place_id==placeId, Place.library_id==libraryId).order_by(Shelf.shelve_name).all()
 
         return [
             {
@@ -18,9 +18,9 @@ def getShelves(placeId: int) -> list[dict] | int:
         return 1
 
 
-def getShelveById(shelveId: int) -> dict | int:
+def getShelveById(libraryId: int, shelveId: int) -> dict | int:
     try:
-        shelf = Shelf.query.filter_by(id=shelveId).first()
+        shelf = Shelf.query.join(Place).filter(Shelf.id==shelveId, Place.library_id==libraryId).first()
         if not shelf:
             return -1
 
@@ -35,8 +35,12 @@ def getShelveById(shelveId: int) -> dict | int:
         return 1
 
 
-def addShelf(placeId: int, shelf_name: str, description: str) -> int:
+def addShelf(libraryId: int, placeId: int, shelf_name: str, description: str) -> int:
     try:
+        place = Place.query.filter_by(id=placeId, library_id=libraryId).first()
+        if not place:
+            return -1
+
         shelf = Shelf(place_id=placeId, shelve_name=shelf_name, description=description)
         db.session.add(shelf)
         db.session.commit()
@@ -46,9 +50,9 @@ def addShelf(placeId: int, shelf_name: str, description: str) -> int:
         elog(e, "shelve_service", "addShelf")
         return 1
 
-def editShelf(shelveId: int, shelf_name: str, description: str) -> int:
+def editShelf(libraryId: int, shelveId: int, shelf_name: str, description: str) -> int:
     try:
-        shelf = Shelf.query.filter_by(id=shelveId).first()
+        shelf = Shelf.query.join(Place).filter(Shelf.id==shelveId, Place.library_id==libraryId).first()
         if not shelf:
             return -1
 
@@ -62,9 +66,9 @@ def editShelf(shelveId: int, shelf_name: str, description: str) -> int:
         return 1
 
 
-def deleteShelf(shelveId: int) -> int:
+def deleteShelf(libraryId: int, shelveId: int) -> int:
     try:
-        shelf = Shelf.query.filter_by(id=shelveId).first()
+        shelf = Shelf.query.join(Place).filter(Shelf.id==shelveId, Place.library_id==libraryId).first()
         if not shelf:
             return -1
 

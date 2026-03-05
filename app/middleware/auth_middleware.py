@@ -13,7 +13,7 @@ class AuthMiddleware:
         with self.flask_app.app_context():
             request = Request(environ)
 
-            if request.path.startswith(("/index", "/guide", "/apidocs")) \
+            if request.path.startswith(("/index", "/guide", "/apidocs", "/socket.io")) \
                     or "favicon.ico" in request.path \
                     or "/" == request.path \
                     or "static" in request.path \

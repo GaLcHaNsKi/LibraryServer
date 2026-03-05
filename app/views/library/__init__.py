@@ -1,9 +1,9 @@
 from flask import Blueprint, request
 from app import OWNER
-from app.views.common_service import InternalErrorResponse, SuccessResponse, getRole, isExists, UserNotFoundResponse, ForbiddenResponse
+from app.views.common_service import InternalErrorResponse, SuccessResponse, getRole, isExists, UserNotFoundResponse, ForbiddenResponse, LibraryNotFoundResponse
 from app.views.notifications import sendNotify
 from app.views.users.users_service import getListOfLibrarians, getUserIDByNickname
-from app.views.library.library_service import delLibraryByDirectorID, transferLibrary
+from app.views.library.library_service import delLibraryByDirectorID, transferLibrary, getLibraryInfo, editLibrary
 from app.views.library.places.places_router import placesBlueprint
 from app.views.library.books.books_routers import booksBlueprint
 
@@ -11,6 +11,86 @@ libraryBlueprint = Blueprint("library", __name__)
 
 libraryBlueprint.register_blueprint(placesBlueprint, url_prefix="/places")
 libraryBlueprint.register_blueprint(booksBlueprint, url_prefix="/books")
+
+
+@libraryBlueprint.route("/info", methods=["GET"])
+def get_library_info():
+    """
+    ---
+    tags:
+        - library
+    summary: Get current library info
+    responses:
+        200:
+            description: Library info
+        404:
+            description: Library not found
+        500:
+            description: Internal Server Error
+    """
+    libraryId = request.environ["user"]["libraryId"]
+
+    result = getLibraryInfo(libraryId)
+
+    if result == -1:
+        return LibraryNotFoundResponse
+    elif result == 1:
+        return InternalErrorResponse
+
+    return result
+
+
+@libraryBlueprint.route("/edit", methods=["PUT"])
+def edit_library():
+    """
+    ---
+    tags:
+        - library
+    summary: Edit library name and description (director only)
+    consumes:
+        - application/x-www-form-urlencoded
+    parameters:
+      - in: formData
+        name: name
+        required: false
+        type: string
+      - in: formData
+        name: description
+        required: false
+        type: string
+    responses:
+        200:
+            description: Success
+        403:
+            description: Permission denied
+        404:
+            description: Library not found
+        500:
+            description: Internal Server Error
+    """
+    libraryId = request.environ["user"]["libraryId"]
+    directorId = request.environ["user"]["id"]
+
+    changes = {}
+    if request.form.get("name"):
+        changes["name"] = request.form["name"]
+    if request.form.get("description"):
+        changes["description"] = request.form["description"]
+
+    if not changes:
+        return {"error": "No changes provided"}, 400
+
+    code = editLibrary(libraryId, directorId, changes)
+
+    if code == -1:
+        return LibraryNotFoundResponse
+    elif code == -2:
+        return ForbiddenResponse
+    elif code == 1:
+        return InternalErrorResponse
+
+    return SuccessResponse
+
 
 @libraryBlueprint.route("/", methods=["DELETE"])
 def delete_library():

@@ -1,6 +1,63 @@
 from app.views.logs import elog
 from app import db
-from app.models import Library, Director, Librarian, User, Role
+from app.models import Library, Director, Librarian, User, Role, Book, OnHandsBook
+
+
+def getLibraryInfo(libraryId):
+    """
+    Возвращает информацию о библиотеке: название, описание,
+    количество библиотекарей, книг и выданных книг.
+    """
+    try:
+        library = Library.query.filter_by(id=libraryId).first()
+        if not library:
+            return -1
+
+        librarians_count = Librarian.query.filter_by(library_id=libraryId, is_hired=True).count()
+        books_count = Book.query.filter_by(library_id=libraryId).count()
+        issued_count = db.session.query(OnHandsBook).join(Book, OnHandsBook.book_id == Book.id).filter(
+            Book.library_id == libraryId
+        ).count()
+
+        return {
+            "name": library.name,
+            "description": library.description,
+            "librarians_count": librarians_count,
+            "books_count": books_count,
+            "issued_count": issued_count,
+        }
+
+    except Exception as e:
+        elog(e, file="library_service", function="getLibraryInfo")
+        return 1
+
+
+def editLibrary(libraryId, directorId, changes: dict):
+    """
+    Редактирует название и/или описание библиотеки.
+    Только для директора.
+    """
+    try:
+        library = Library.query.filter_by(id=libraryId).first()
+        if not library:
+            return -1
+
+        # Проверяем, что пользователь — директор этой библиотеки
+        if library.director_id != directorId:
+            return -2  # Forbidden
+
+        if "name" in changes:
+            library.name = changes["name"]
+        if "description" in changes:
+            library.description = changes["description"]
+
+        db.session.commit()
+        return 0
+
+    except Exception as e:
+        db.session.rollback()
+        elog(e, file="library_service", function="editLibrary")
+        return 1
 
 
 def delLibraryByDirectorID(director_id):

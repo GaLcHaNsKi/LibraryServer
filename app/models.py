@@ -97,7 +97,6 @@ class Book(db.Model):
     __tablename__ = 'books'
     id = db.Column(db.Integer, primary_key=True)
     library_id = db.Column(db.Integer, db.ForeignKey('libraries.id', ondelete="CASCADE"), nullable=False)
-    is_on_hand = db.Column(db.Boolean, default=False)
     inventory_num = db.Column(db.String(50), nullable=False)
     title_ru = db.Column(db.Text)
     title_original = db.Column(db.Text)
@@ -121,7 +120,7 @@ class Book(db.Model):
     document_type_id = db.Column(db.Integer, db.ForeignKey('document_types.id', ondelete="SET NULL"))
     book_genre_id = db.Column(db.Integer, db.ForeignKey('book_genres.id', ondelete="SET NULL"))
     book_genre = db.relationship("BookGenre", backref="books")
-    cover_photo_uuid = db.Column(db.String(40))
+    cover_photo_url = db.Column(db.String(500))
     age_of_reader = db.Column(db.String(50))
     quantity = db.Column(db.Integer)
     location_id = db.Column(db.Integer, db.ForeignKey('places.id', ondelete="CASCADE"), nullable=False)

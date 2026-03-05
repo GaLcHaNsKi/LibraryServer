@@ -1,7 +1,8 @@
 from flask import Blueprint, request
 
-from app.views.common_service import isExists, InternalErrorResponse, UserNotFoundResponse, SuccessResponse
+from app.views.common_service import LibrarianAlreadyHiredResponse, OfferNotFoundResponse, isExists, InternalErrorResponse, UserNotFoundResponse, SuccessResponse
 from app.views.notifications import sendNotify
+from app.views.notifications.notifications_service import checkOffer
 from app.views.users.users_service import getUserIDByNickname, isHired, hireLibrarian, dismissLibrarian, \
     getListOfLibrarians
 
@@ -19,7 +20,7 @@ def librarian_control_post():
     - application/x-www-form-urlencoded
     parameters:
       - in: formData
-        name: librarian
+        name: notificationId
         required: true
         type: string
     responses:
@@ -32,23 +33,26 @@ def librarian_control_post():
             500:
                 description: Internal Server Error
     """
-    librarian = request.form["librarian"]
-    director = request.environ["user"]["nickname"]
+    librarian = request.environ["user"]["nickname"]
+    librarianId = request.environ["user"]["id"]
+    
+    libName = isHired(librarian)
+    
+    if len(libName) > 0:
+        return LibrarianAlreadyHiredResponse
+    
+    notificationId = request.form["notificationId"]
+    
+    directorId = checkOffer(notificationId, librarianId)
+    
+    if directorId == -1:
+        return OfferNotFoundResponse
+    elif directorId == -2:
+        return ({"error": "You wasn't hired"}, 403)
+    
+    if hireLibrarian(directorId, librarian): return InternalErrorResponse
 
-    director_id = getUserIDByNickname(director)
-
-    if not isExists(librarian):
-        return {"error": "Librarian not found"}, 404
-
-    lib_name = isHired(librarian)
-    if lib_name == 1:
-        return InternalErrorResponse
-    elif lib_name == 2:
-        return UserNotFoundResponse
-
-    if hireLibrarian(director_id, librarian): return InternalErrorResponse
-
-    sendNotify(librarian, director, "У вас новый библиотекарь!", f"{librarian} присоединился к вам.",
+    sendNotify(librarian, directorId, "У вас новый библиотекарь!", f"{librarian} присоединился к вам.",
                "message")
 
     return SuccessResponse
@@ -84,7 +88,14 @@ def librarians_delete():
     if not isExists(librarian):
         return UserNotFoundResponse
 
-    if dismissLibrarian(librarian): return InternalErrorResponse
+    res = dismissLibrarian(director, librarian)
+    
+    if res == 2:
+        return UserNotFoundResponse
+    elif res == -1:
+        return ({"error": "You are not director!"}, 403)
+    elif res == -2:
+        return InternalErrorResponse
 
     sendNotify(director, librarian, "Вы уволены!", f"{director} вас уволил.", "message")
 

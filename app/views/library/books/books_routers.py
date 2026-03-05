@@ -20,187 +20,69 @@ def addBookRoute():
       - multipart/form-data
     parameters:
       - in: formData
-        name: inventory_num
+        name: data
         required: true
         type: string
-      - in: formData
-        name: title_ru
-        required: false
-        type: string
-      - in: formData
-        name: title_original
-        required: false
-        type: string
-      - in: formData
-        name: series
-        required: false
-        type: string
-      - in: formData
-        name: lang_of_book
-        required: false
-        type: string
-      - in: formData
-        name: lang_original
-        required: false
-        type: string
-      - in: formData
-        name: author_ru
-        required: false
-        type: string
-      - in: formData
-        name: author_in_original_lang
-        required: false
-        type: string
-      - in: formData
-        name: writing_year
-        required: false
-        type: integer
-      - in: formData
-        name: transfer_year
-        required: false
-        type: integer
-      - in: formData
-        name: translators
-        required: false
-        type: string
-      - in: formData
-        name: explanation_ru
-        required: false
-        type: string
-      - in: formData
-        name: applications
-        required: false
-        type: string
-      - in: formData
-        name: dimensions
-        required: false
-        type: string
-      - in: formData
-        name: publication_year
-        required: false
-        type: integer
-      - in: formData
-        name: edition_num
-        required: false
-        type: integer
-      - in: formData
-        name: publishing_house
-        required: false
-        type: string
-      - in: formData
-        name: isbn1
-        required: false
-        type: integer
-      - in: formData
-        name: isbn2
-        required: false
-        type: integer
-      - in: formData
-        name: abstract
-        required: false
-        type: string
-      - in: formData
-        name: document_type
-        required: false
-        type: string
-      - in: formData
-        name: genre
-        required: false
-        type: string
+        description: JSON object with book data containing fields - inventory_num (required, string), title_ru, title_original, series, lang_of_book, lang_original, author_ru, author_in_original_lang, writing_year (integer), transfer_year (integer), translators, explanation_ru, applications, dimensions, publication_year (integer), edition_num (integer), publishing_house, isbn1 (integer), isbn2 (integer), abstract, document_type_id (integer), genre_id (integer), age_of_reader, quantity (integer), location_id (required, integer), shelve_id (required, integer), condition_id (integer), pages_quantity (integer), keywords (array), topics (array), bible_references (array)
       - in: formData
         name: cover-photo
         required: false
         type: file
-      - in: formData
-        name: age_of_reader
-        required: false
-        type: string
-      - in: formData
-        name: quantity
-        required: false
-        type: integer
-      - in: formData
-        name: location
-        required: true
-        type: string
-      - in: formData
-        name: shelve
-        required: true
-        type: string
-      - in: formData
-        name: condition
-        required: false
-        type: string
-      - in: formData
-        name: pages_quantity
-        required: false
-        type: integer
-      - in: formData
-        name: keywords
-        required: false
-        type: string
-      - in: formData
-        name: topics
-        required: false
-        type: string
-      - in: formData
-        name: bible_references
-        required: false
-        type: string
     responses:
       200:
         description: Success
       500:
         description: Internal Server Error
     """
-    inventory_num = request.form.get("inventory_num")
+    try:
+        data = json.loads(request.form.get("data", "{}"))
+    except json.JSONDecodeError:
+        return {"error": "Invalid JSON in data field"}, 400
+    
     libraryId = request.environ["user"]["libraryId"]
     
-    print(request.form)
-
     cover_photo = request.files.get("cover-photo", "")
-    photo_uuid = ""
-    if cover_photo:
-        photo_uuid = uploadToDropbox(cover_photo)
+    photo_result = uploadToDropbox(cover_photo) if cover_photo else None
+    photo_url = photo_result.get('url', '') if photo_result else ""
 
     code = LibraryClient.addBook(
         libraryId=libraryId,
-        inventory_num=inventory_num,
-        title_ru=request.form.get("title_ru", ""),
-        title_original=request.form.get("title_original", ""),
-        series=request.form.get("series", ""),
-        lang_of_book=request.form.get("lang_of_book", ""),
-        lang_original=request.form.get("lang_original", ""),
-        author_ru=request.form.get("author_ru", ""),
-        author_in_original_lang=request.form.get("author_in_original_lang", ""),
-        writing_year=int(request.form.get("writing_year", "0")) if request.form.get("writing_year") else None,
-        transfer_year=int(request.form.get("transfer_year", "0")) if request.form.get("transfer_year") else None,
-        translators=request.form.get("translators", ""),
-        explanation_ru=request.form.get("explanation_ru", ""),
-        applications=request.form.get("applications", ""),
-        dimensions=request.form.get("dimensions", ""),
-        publication_year=int(request.form.get("publication_year", "0")) if request.form.get(
-            "publication_year") else None,
-        edition_num=int(request.form.get("edition_num", "0")) if request.form.get("edition_num") else None,
-        publishing_house=request.form.get("publishing_house", ""),
-        isbn1=int(request.form.get("isbn1", "0")) if request.form.get("isbn1") else None,
-        isbn2=int(request.form.get("isbn2", "0")) if request.form.get("isbn2") else None,
-        abstract=request.form.get("abstract", ""),
-        document_type_id=int(request.form.get("document_type")["id"]) if request.form.get("document_type") else None,
-        book_genre_id=int(request.form.get("genre")["id"]) if request.form.get("genre") else None,
-        cover_photo_uuid=photo_uuid,
-        age_of_reader=request.form.get("age_of_reader", ""),
-        quantity=int(request.form.get("quantity", "0")) if request.form.get("quantity") else None,
-        location_id=int(request.form.get("location")["id"]),
-        shelve_id=int(request.form.get("shelve")["id"]),
-        condition_id=int(request.form.get("condition")["id"]) if request.form.get("condition") else None,
-        pages_quantity=int(request.form.get("pages_quantity", "1")) if request.form.get("pages_quantity") else None,
-        keywords=json.loads(request.form.get("keywords", "[]")),
-        topics=json.loads(request.form.get("topics", "[]")),
-        bible_references=json.loads(request.form.get("bible_references", "[]"))
+        inventory_num=data.get("inventory_num", ""),
+        title_ru=data.get("title_ru", ""),
+        title_original=data.get("title_original", ""),
+        series=data.get("series", ""),
+        lang_of_book=data.get("lang_of_book", ""),
+        lang_original=data.get("lang_original", ""),
+        author_ru=data.get("author_ru", ""),
+        author_in_original_lang=data.get("author_in_original_lang", ""),
+        writing_year=int(data.get("writing_year", 0)) if data.get("writing_year") else None,
+        transfer_year=int(data.get("transfer_year", 0)) if data.get("transfer_year") else None,
+        translators=data.get("translators", ""),
+        explanation_ru=data.get("explanation_ru", ""),
+        applications=data.get("applications", ""),
+        dimensions=data.get("dimensions", ""),
+        publication_year=int(data.get("publication_year", 0)) if data.get("publication_year") else None,
+        edition_num=int(data.get("edition_num", 0)) if data.get("edition_num") else None,
+        publishing_house=data.get("publishing_house", ""),
+        isbn1=int(data.get("isbn1", 0)) if data.get("isbn1") else None,
+        isbn2=int(data.get("isbn2", 0)) if data.get("isbn2") else None,
+        abstract=data.get("abstract", ""),
+        document_type_id=int(data.get("document_type_id")) if data.get("document_type_id") else None,
+        book_genre_id=int(data.get("genre_id")) if data.get("genre_id") else None,
+        cover_photo_url=photo_url,
+        age_of_reader=data.get("age_of_reader", ""),
+        quantity=int(data.get("quantity", 1)) if data.get("quantity") else 1,
+        location_id=int(data.get("location_id")),
+        shelve_id=int(data.get("shelve_id")),
+        condition_id=int(data.get("condition_id")) if data.get("condition_id") else None,
+        pages_quantity=int(data.get("pages_quantity", 1)) if data.get("pages_quantity") else None,
+        keywords=data.get("keywords", []),
+        topics=data.get("topics", []),
+        bible_references=data.get("bible_references", [])
     )
 
-    if code: return InternalErrorResponse
+    if code: 
+        return InternalErrorResponse
 
     return SuccessResponse
 
@@ -239,10 +121,10 @@ def issueBookRoute(bookId):
         description: Internal Server Error
     """
     recipient_name = request.form["name"]
-    deadline = request.form["deadline"]
+    deadline_str = request.form["deadline"]
 
     try:
-        datetime.strptime(deadline, "%d.%m.%Y")
+        deadline = datetime.strptime(deadline_str, "%d.%m.%Y")
     except ValueError:
         return {"error": "Expected date for deadline"}, 400
 
@@ -324,12 +206,21 @@ def editBookRoute(bookId):
       - books
     summary: Edit book
     consumes:
-      - application/json
+      - multipart/form-data
     parameters:
       - in: path
         name: bookId
         required: true
         type: integer
+      - in: formData
+        name: data
+        required: false
+        type: string
+        description: JSON object with book fields to update
+      - in: formData
+        name: cover-photo
+        required: false
+        type: file
     responses:
       200:
         description: Success
@@ -338,8 +229,19 @@ def editBookRoute(bookId):
       500:
         description: Internal Server Error
     """
-    changes = request.get_json(silent=True) or {}
-    code = LibraryClient.editBook(bookId, changes)
+    try:
+        data = json.loads(request.form.get("data", "{}"))
+    except json.JSONDecodeError:
+        data = {}
+    
+    # Обработка обложки
+    cover_photo = request.files.get("cover-photo")
+    if cover_photo:
+        photo_result = uploadToDropbox(cover_photo)
+        if photo_result:
+            data["cover_photo_url"] = photo_result.get('url', '')
+    
+    code = LibraryClient.editBook(bookId, data)
 
     if code == -1:
         return BookNotFoundResponse
@@ -385,7 +287,7 @@ def getBooksRoute():
     take = request.args.get("take", 10, int)
 
     filters_str = request.form.get("filters")
-    
+
     try:
         filters = json.loads(filters_str) if filters_str else {}
     except json.JSONDecodeError:
@@ -424,5 +326,88 @@ def getBookRoute(bookId):
     book = LibraryClient.getBook(bookId)
     if book == -1:
         return BookNotFoundResponse
+      
+    print(book)
+
+    return book
+
+
+@booksBlueprint.route("/issued/all", methods=["POST"])
+def getIssuedBooksRoute():
+    """
+    ---
+    tags:
+      - books
+    summary: Get issued books list with filters
+    consumes:
+      - application/x-www-form-urlencoded
+    parameters:
+      - in: query
+        name: page
+        required: false
+        type: integer
+      - in: query
+        name: take
+        required: false
+        type: integer
+      - in: formData
+        name: filters
+        required: false
+        type: string
+    responses:
+      200:
+        description: Issued books list
+      404:
+        description: Library not found
+      500:
+        description: Internal Server Error
+    """
+    libraryId = request.environ["user"]["libraryId"]
+
+    page = request.args.get("page", 1, int)
+    take = request.args.get("take", 10, int)
+
+    filters_str = request.form.get("filters")
+
+    try:
+        filters = json.loads(filters_str) if filters_str else {}
+    except json.JSONDecodeError:
+        filters = {}
+
+    books = LibraryClient.getIssuedBooks(libraryId, page, take, filters)
+
+    if books == -1:
+        return LibraryNotFoundResponse
+    elif books == 1:
+        return InternalErrorResponse
+
+    return books
+
+
+@booksBlueprint.route("/issued/<int:onHandsBookId>", methods=["GET"])
+def getIssuedBookRoute(onHandsBookId):
+    """
+    ---
+    tags:
+      - books
+    summary: Get specific issued book
+    parameters:
+      - in: path
+        name: onHandsBookId
+        required: true
+        type: integer
+    responses:
+      200:
+        description: Book
+      404:
+        description: Book not found
+      500:
+        description: Internal Server Error
+    """
+    book = LibraryClient.getIssuedBook(onHandsBookId)
+    if book == -1:
+        return BookNotFoundResponse
+    elif book == 1:
+        return InternalErrorResponse
 
     return book

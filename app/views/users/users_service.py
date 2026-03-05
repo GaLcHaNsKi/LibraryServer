@@ -1,7 +1,73 @@
 from app import db
-from app.models import User, Role, Director, Librarian, Library
+from app.models import Notification, User, Role, Director, Librarian, Library
 from app.views.common_service import isExists
 from app.views.logs import elog
+
+
+def getUserInfo(userId):
+    """
+    Возвращает информацию о пользователе: имя, роль, нанят ли, название библиотеки.
+    """
+    try:
+        user = User.query.filter_by(id=userId).first()
+        if not user:
+            return -1
+
+        result = {
+            "nickname": user.nickname,
+            "role": user.role.value,
+        }
+
+        if user.role == Role.LIBRARIAN:
+            librarian = Librarian.query.filter_by(user_id=user.id).first()
+            if librarian:
+                result["is_hired"] = librarian.is_hired
+                if librarian.is_hired and librarian.library_id:
+                    library = Library.query.filter_by(id=librarian.library_id).first()
+                    result["library"] = library.name if library else None
+                else:
+                    result["library"] = None
+            else:
+                result["is_hired"] = False
+                result["library"] = None
+
+        elif user.role == Role.OWNER:
+            director = Director.query.filter_by(user_id=user.id).first()
+            if director and director.library_id:
+                library = Library.query.filter_by(id=director.library_id).first()
+                result["library"] = library.name if library else None
+            else:
+                result["library"] = None
+
+        return result
+
+    except Exception as e:
+        elog(e, file="users_service", function="getUserInfo")
+        return 1
+
+
+def editUserNickname(userId, newNickname):
+    """
+    Меняет никнейм пользователя.
+    """
+    try:
+        user = User.query.filter_by(id=userId).first()
+        if not user:
+            return -1
+
+        # Проверяем уникальность нового никнейма
+        existing = User.query.filter_by(nickname=newNickname).first()
+        if existing:
+            return -2  # Nickname already taken
+
+        user.nickname = newNickname
+        db.session.commit()
+        return 0
+
+    except Exception as e:
+        db.session.rollback()
+        elog(e, file="users_service", function="editUserNickname")
+        return 1
 
 
 def deleteUser(nickname):
@@ -60,8 +126,13 @@ def hireLibrarian(director_id, librarian):
     return 0
 
 
-def dismissLibrarian(librarian):
+def dismissLibrarian(director, librarian):
     try:
+        d = Director.query.filter_by(user_id=getUserIDByNickname(director)).first()
+        
+        if not d:
+            return -1  # it is not director
+        
         # Find user by nickname
         user = User.query.filter_by(nickname=librarian).first()
         if not user:
@@ -70,7 +141,7 @@ def dismissLibrarian(librarian):
         # Find librarian record by user_id
         librarian_record = Librarian.query.filter_by(user_id=user.id).first()
         if not librarian_record:
-            return 1  # Librarian record not found
+            return 2  # Librarian record not found
 
         # Update librarian record
         librarian_record.director_id = None
@@ -83,7 +154,7 @@ def dismissLibrarian(librarian):
     except Exception as e:
         db.session.rollback()  # Roll back on error
         elog(e, "users_service", "dismissLibrarian")
-        return 1
+        return -2
 
     return 0
 
@@ -123,10 +194,10 @@ def isHired(librarian):
 
 
             if not director_record or not director_record[1]:
-                return 1
+                return ""
             return director_record[1]  # Library name
 
-        return 1
+        return ""  # User is neither librarian nor owner
 
     except Exception as e:
         elog(e, "users_service", "isHired")

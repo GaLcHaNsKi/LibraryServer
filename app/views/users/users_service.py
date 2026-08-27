@@ -58,7 +58,8 @@ def editUserNickname(userId, newNickname):
 
         # Проверяем уникальность нового никнейма
         existing = User.query.filter_by(nickname=newNickname).first()
-        if existing:
+        # Исключаем самого пользователя — сохранять свой же ник можно
+        if existing and existing.id != user.id:
             return -2  # Nickname already taken
 
         user.nickname = newNickname
@@ -213,12 +214,29 @@ def selfDismissLibrarian(user_id):
         if not librarian_record.is_hired:
             return -4
 
+        # Запоминаем директора, чтобы уведомить его после увольнения
+        director_id = librarian_record.director_id
+
         # Снимаем наём
         librarian_record.director_id = None
         librarian_record.library_id = None
         librarian_record.is_hired = False
 
         db.session.commit()
+
+        # Уведомляем директора, что библиотекарь уволился сам.
+        # Импорт локальный — чтобы не создавать циклическую зависимость
+        # между модулями users_service и notifications_service.
+        if director_id and User.query.get(director_id):
+            from app.views.notifications.notifications_service import sendNotify
+            sendNotify(
+                user.nickname,
+                director_id,
+                "Библиотекарь уволился",
+                f"{user.nickname} уволился из вашей библиотеки.",
+                "message"
+            )
+
         return 0
 
     except Exception as e:

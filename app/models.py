@@ -183,7 +183,7 @@ class BookTopic(db.Model):
     __tablename__ = 'books_topics'
     id = db.Column(db.Integer, primary_key=True)
     book_id = db.Column(db.Integer, db.ForeignKey('books.id', ondelete="CASCADE"))
-    topic_name = db.Column(db.String(15), nullable=False)
+    topic_name = db.Column(db.String(50), nullable=False)
     pages = db.Column(db.Text)
 
 

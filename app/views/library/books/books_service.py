@@ -1,4 +1,3 @@
-import json
 from datetime import datetime
 
 from sqlalchemy import String, Boolean, Integer
@@ -53,6 +52,9 @@ class LibraryClient:
             if not library_record:
                 return 1  # Library not found
 
+            if not inventory_num or not str(inventory_num).strip():
+                return 5  # Inventory number is required
+
             if not location_id or not shelve_id:
                 return 2  # Missing location or shelf
 
@@ -100,32 +102,14 @@ class LibraryClient:
             db.session.add(new_book)
             db.session.flush()  # Ensure book.id is available for related records
 
-            # Insert keywords
+            # Ключевые слова, темы и библейские ссылки — переиспользуем те же
+            # методы, что и при редактировании (списки уже разобраны из JSON).
             if keywords:
-                keywords = json.load(keywords)
-                for kw in keywords:
-                    keyword = Keyword(keyword=kw.keyword, book_id=new_book.id, pages=kw.pages)
-                    db.session.add(keyword)
-
-            # Insert topics
+                self._updateKeywords(new_book, keywords)
             if topics:
-                topics = json.load(topics)
-                for topic in topics:
-                    book_topic = BookTopic(book_id=new_book.id, topic_id=topic.topicId, pages=topic.pages)
-                    db.session.add(book_topic)
-
-            # Insert Bible references
+                self._updateTopics(new_book, topics)
             if bible_references:
-                bible_references = json.load(bible_references)
-                for bibleRef in bible_references:
-                    bible_ref = BiblePlaceInBook(
-                        book_id=new_book.id,
-                        bible_book_id=bibleRef.bibleBookId,
-                        chapter=bibleRef.chapter,
-                        verse=bibleRef.verse,
-                        pages=bibleRef.pages
-                    )
-                    db.session.add(bible_ref)
+                self._updateBibleReferences(new_book, bible_references)
 
             # Commit all changes
             db.session.commit()
@@ -363,6 +347,9 @@ class LibraryClient:
             if not book:
                 return -1  # Book not found
 
+            if "inventory_num" in changes and (not changes["inventory_num"] or not str(changes["inventory_num"]).strip()):
+                return 5  # Inventory number is required
+
             if "location_id" in changes or "shelve_id" in changes:
                 loc_id = changes.get("location_id", book.location_id)
                 sh_id = changes.get("shelve_id", book.shelve_id)
@@ -386,7 +373,7 @@ class LibraryClient:
                     self._updateTopics(book, value)
                 elif field == "keywords":
                     self._updateKeywords(book, value)
-                elif field == "bibleReferences":
+                elif field in ("bibleReferences", "bible_references"):
                     self._updateBibleReferences(book, value)
 
             # Commit changes
@@ -407,7 +394,7 @@ class LibraryClient:
             value (list[dict]): Список словарей с темами. Формат:
                 {
                     id: int | None  # ID записи в books_topics (не id темы!)
-                    topic_id: int
+                    name: str
                     pages: str
                 }
         """
@@ -424,14 +411,14 @@ class LibraryClient:
                     # Новая связь
                     new_link = BookTopic(
                         book_id=book.id,
-                        topic_id=item["topic_id"],
+                        topic_name=item["name"],
                         pages=item.get("pages", "")
                     )
                     db.session.add(new_link)
                 elif link_id in existing_links:
                     # Обновление существующей связи
                     link = existing_links[link_id]
-                    link.topic_id = item["topic_id"]
+                    link.topic_name = item["name"]
                     link.pages = item.get("pages", "")
 
             # Удаление неиспользуемых связей
@@ -639,8 +626,8 @@ class LibraryClient:
                 },
                 "topics": [
                     {
-                        "id": bt.topic.id,
-                        "name": bt.topic.topic_name,
+                        "id": bt.id,
+                        "name": bt.topic_name,
                         "pages": bt.pages
                     } for bt in book.topics_links
                 ],
@@ -858,8 +845,8 @@ class LibraryClient:
                 },
                 "topics": [
                     {
-                        "id": bt.topic.id,
-                        "name": bt.topic.topic_name,
+                        "id": bt.id,
+                        "name": bt.topic_name,
                         "pages": bt.pages
                     } for bt in book.topics_links
                 ],

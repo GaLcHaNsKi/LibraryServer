@@ -81,14 +81,16 @@ def addBookRoute():
         bible_references=data.get("bible_references", [])
     )
 
-    if code == 1: 
+    if code == 1:
         return InternalErrorResponse
     elif code == 2:
-        return {"error": "Location and shelf are required"}, 400
+        return {"error": "Выберите место и полку"}, 400
     elif code == 3:
-        return {"error": "Invalid location"}, 400
+        return {"error": "Выбрано неверное место"}, 400
     elif code == 4:
-        return {"error": "Invalid shelf"}, 400
+        return {"error": "Выбрана неверная полка"}, 400
+    elif code == 5:
+        return {"error": "Заполните инвентарный номер"}, 400
 
     return SuccessResponse
 
@@ -257,11 +259,13 @@ def editBookRoute(bookId):
     elif code == 1:
         return InternalErrorResponse
     elif code == 2:
-        return {"error": "Location and shelf are required"}, 400
+        return {"error": "Выберите место и полку"}, 400
     elif code == 3:
-        return {"error": "Invalid location"}, 400
+        return {"error": "Выбрано неверное место"}, 400
     elif code == 4:
-        return {"error": "Invalid shelf"}, 400
+        return {"error": "Выбрана неверная полка"}, 400
+    elif code == 5:
+        return {"error": "Заполните инвентарный номер"}, 400
 
     return SuccessResponse
 

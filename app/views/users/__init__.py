@@ -1,6 +1,6 @@
 from flask import Blueprint, request
 
-from app.views.users.users_service import deleteUser, getUserInfo, editUserNickname
+from app.views.users.users_service import deleteUser, getUserInfo, editUserNickname, editUserEmail, selfDismissLibrarian
 from app.views.common_service import InternalErrorResponse, SuccessResponse, UserNotFoundResponse
 
 usersBlueprint = Blueprint("users", __name__)
@@ -58,17 +58,61 @@ def edit_user():
     """
     userId = request.environ["user"]["id"]
     newNickname = request.form.get("nickname")
+    newEmail = request.form.get("email")
 
-    if not newNickname:
-        return {"error": "Nickname is required"}, 400
+    if not newNickname and newEmail is None:
+        return {"error": "Nothing to update"}, 400
 
-    code = editUserNickname(userId, newNickname)
+    # Смена никнейма (если передан)
+    if newNickname:
+        code = editUserNickname(userId, newNickname)
+        if code == -1:
+            return UserNotFoundResponse
+        elif code == -2:
+            return {"error": "Nickname already taken"}, 409
+        elif code == 1:
+            return InternalErrorResponse
+
+    # Смена email (если передан)
+    if newEmail is not None:
+        code = editUserEmail(userId, newEmail)
+        if code == -1:
+            return UserNotFoundResponse
+        elif code == -2:
+            return {"error": "Email already taken"}, 409
+        elif code == 1:
+            return InternalErrorResponse
+
+    return SuccessResponse
+
+
+@usersBlueprint.route("/dismiss", methods=["POST"])
+def self_dismiss():
+    """
+    ---
+    tags:
+        - users
+    summary: Dismiss self (for hired librarian)
+    responses:
+        200:
+            description: Success
+        403:
+            description: Not a librarian or not hired
+        404:
+            description: User not found
+        500:
+            description: Internal Server Error
+    """
+    userId = request.environ["user"]["id"]
+    code = selfDismissLibrarian(userId)
 
     if code == -1:
         return UserNotFoundResponse
+    elif code == -3:
+        return {"error": "You are not a librarian"}, 403
+    elif code == -4:
+        return {"error": "You are not hired"}, 403
     elif code == -2:
-        return {"error": "Nickname already taken"}, 409
-    elif code == 1:
         return InternalErrorResponse
 
     return SuccessResponse

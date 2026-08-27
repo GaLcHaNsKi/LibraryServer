@@ -318,6 +318,32 @@ def getBooksRoute():
     return books
 
 
+@booksBlueprint.route("/autofill/all", methods=["POST"])
+def getAutofillBooksRoute():
+    """Search all libraries for publication data to prefill a new book."""
+    page = request.args.get("page", 1, int)
+    take = request.args.get("take", 10, int)
+    try:
+        filters = json.loads(request.form.get("filters", "{}"))
+    except json.JSONDecodeError:
+        filters = {}
+
+    books = LibraryClient.getAutofillBooks(page, take, filters)
+    if books == 1:
+        return InternalErrorResponse
+    return books
+
+
+@booksBlueprint.route("/autofill/<bookId>", methods=["GET"])
+def getAutofillBookRoute(bookId):
+    book = LibraryClient.getAutofillBook(bookId)
+    if book == -1:
+        return BookNotFoundResponse
+    elif book == 1:
+        return InternalErrorResponse
+    return book
+
+
 @booksBlueprint.route("/<bookId>", methods=["GET"])
 def getBookRoute(bookId):
     """

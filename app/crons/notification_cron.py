@@ -1,9 +1,4 @@
-import os
-import sys
 from datetime import datetime
-
-# Обеспечиваем доступ к контексту приложения (так как скрипт запускается автономно)
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 
 from app import app
 from app.models import OnHandsBook, Book, NotificationSetting, Library, User, Librarian

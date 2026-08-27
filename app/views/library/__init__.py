@@ -119,8 +119,9 @@ def delete_library():
         return InternalErrorResponse
 
     # оповещение библиотекарям
-    for i in range(1, librarians["quant"] + 1):
-        sendNotify(director, librarians[str(i)], "Беда!", f"{director} удалил библиотеку.", "send")
+    if isinstance(librarians, list):
+        for librarian in librarians:
+            sendNotify(director, librarian, "Беда!", f"{director} удалил библиотеку.", "send")
 
     return SuccessResponse
 

@@ -286,6 +286,18 @@ class LibraryClient:
             "quantity": book.quantity,
         }
 
+    def _buildAutofillBookResponse(self, book: Book) -> dict:
+        """Fields that describe a publication, rather than a library copy."""
+        return {
+            "id": book.id,
+            "title_ru": book.title_ru,
+            "title_original": book.title_original,
+            "genre": book.book_genre.genre_name if book.book_genre else None,
+            "author_ru": book.author_ru,
+            "author_original": book.author_in_original_lang,
+            "cover_photo_url": book.cover_photo_url,
+        }
+
     def getBookId(self, library, inventory_num):
         try:
             # Find library by name
@@ -654,6 +666,70 @@ class LibraryClient:
         except Exception as e:
             db.session.rollback()
             elog(e, "book_service", "getBook")
+            return 1
+
+    def getAutofillBooks(self, page: int = 1, take: int = 10, filters_: dict = None) -> dict | int:
+        """Search publications across all libraries for creating a new copy."""
+        try:
+            query, error = self._applyFilters(Book.query, filters_)
+            if error:
+                return 1
+
+            total = query.count()
+            offset = (page - 1) * take
+            books = query.options(joinedload(Book.book_genre)).order_by(Book.title_ru).offset(offset).limit(take).all()
+            return {
+                "pages": (total + take - 1) // take,
+                "data": [self._buildAutofillBookResponse(book) for book in books]
+            }
+        except Exception as e:
+            db.session.rollback()
+            elog(e, "book_service", "getAutofillBooks")
+            return 1
+
+    def getAutofillBook(self, id: int) -> dict | int:
+        """Return only publication-level fields; never expose copy/location data."""
+        try:
+            book = Book.query.filter_by(id=id).first()
+            if not book:
+                return -1
+
+            return {
+                "id": book.id,
+                "title_ru": book.title_ru,
+                "title_original": book.title_original,
+                "series": book.series,
+                "lang_of_book": book.lang_of_book,
+                "lang_original": book.lang_original,
+                "author_ru": book.author_ru,
+                "author_in_original_lang": book.author_in_original_lang,
+                "writing_year": book.writing_year,
+                "transfer_year": book.transfer_year,
+                "translators": book.translators,
+                "explanation_ru": book.explanation_ru,
+                "applications": book.applications,
+                "dimensions": book.dimensions,
+                "publication_year": book.publication_year,
+                "edition_num": book.edition_num,
+                "publishing_house": book.publishing_house,
+                "isbn1": book.isbn1,
+                "isbn2": book.isbn2,
+                "abstract": book.abstract,
+                "cover_photo_url": book.cover_photo_url,
+                "age_of_reader": book.age_of_reader,
+                "pages_quantity": book.pages_quantity,
+                "genre": {
+                    "id": book.book_genre.id if book.book_genre else None,
+                    "name": book.book_genre.genre_name if book.book_genre else None,
+                },
+                "document_type": {
+                    "id": book.document_type.id if book.document_type else None,
+                    "name": book.document_type.type_name if book.document_type else None,
+                },
+            }
+        except Exception as e:
+            db.session.rollback()
+            elog(e, "book_service", "getAutofillBook")
             return 1
 
     def getIssuedBooks(self, libraryId: int | None, page: int = 1, take: int = 10, filters_: dict = None) -> dict | int:

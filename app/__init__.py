@@ -75,3 +75,12 @@ swagger = Swagger(app, config=swagger_config, template=swagger_template)
 
 with app.app_context():
     fillReferenceTables()
+
+# --- Фоновые задачи (кроны) ---
+# Планировщик стартует вместе с приложением, поэтому кроны работают при любом
+# способе запуска сервера (python run.py, flask run, gunicorn, WSGI и т.п.).
+# Чтобы запускать кроны отдельно/вручную — отключите автостарт: DISABLE_CRONS=1
+if os.environ.get("DISABLE_CRONS", "0") != "1":
+    from app.scheduler import start_schedulers
+
+    start_schedulers()

@@ -15,6 +15,7 @@ def getUserInfo(userId):
 
         result = {
             "nickname": user.nickname,
+            "email": user.email,
             "role": user.role.value,
         }
 
@@ -67,6 +68,34 @@ def editUserNickname(userId, newNickname):
     except Exception as e:
         db.session.rollback()
         elog(e, file="users_service", function="editUserNickname")
+        return 1
+
+
+def editUserEmail(userId, newEmail):
+    """
+    Меняет email пользователя.
+    """
+    try:
+        user = User.query.filter_by(id=userId).first()
+        if not user:
+            return -1
+
+        # Нормализуем пустую строку в None (email не обязателен)
+        new_email = newEmail.strip() if newEmail else None
+
+        if new_email:
+            # Проверяем уникальность нового email
+            existing = User.query.filter_by(email=new_email).first()
+            if existing and existing.id != user.id:
+                return -2  # Email already taken
+
+        user.email = new_email
+        db.session.commit()
+        return 0
+
+    except Exception as e:
+        db.session.rollback()
+        elog(e, file="users_service", function="editUserEmail")
         return 1
 
 
@@ -159,6 +188,45 @@ def dismissLibrarian(director, librarian):
     return 0
 
 
+def selfDismissLibrarian(user_id):
+    """
+    Библиотекарь увольняется сам: снимает привязку к директору и библиотеке.
+    Возвращает:
+        0  - успешно;
+        -1 - пользователь не найден;
+        -3 - это не библиотекарь;
+        -4 - библиотекарь не нанят;
+        -2 - ошибка БД.
+    """
+    try:
+        user = User.query.filter_by(id=user_id).first()
+        if not user:
+            return -1
+
+        if user.role != Role.LIBRARIAN:
+            return -3
+
+        librarian_record = Librarian.query.filter_by(user_id=user_id).first()
+        if not librarian_record:
+            return -1
+
+        if not librarian_record.is_hired:
+            return -4
+
+        # Снимаем наём
+        librarian_record.director_id = None
+        librarian_record.library_id = None
+        librarian_record.is_hired = False
+
+        db.session.commit()
+        return 0
+
+    except Exception as e:
+        db.session.rollback()
+        elog(e, "users_service", "selfDismissLibrarian")
+        return -2
+
+
 def isHired(librarian):
     """
         Если librarian - библиотекарь, возвращаем:
@@ -169,33 +237,18 @@ def isHired(librarian):
     """
 
     try:
-        # Query user by nickname
         user = User.query.filter_by(nickname=librarian).first()
 
         if not user:
             return 1
 
         if user.role == Role.LIBRARIAN:
-            # Query librarian with library join
-            librarian_record = Librarian.query.filter_by(user_id=user.id).join(
-                Library, Librarian.library_id == Library.id, isouter=True
-            ).add_columns(Library.name).first()
-
-
-            if not librarian_record or not librarian_record[1]:  # No library associated
-                return ""
-            return librarian_record[1]  # Library name
+            library_name = db.session.query(Library.name).select_from(Librarian).join(Library, isouter=True).filter(Librarian.user_id == user.id).scalar()
+            return library_name if library_name else ""
 
         elif user.role == Role.OWNER:
-            # Query director with library join
-            director_record = Director.query.filter_by(user_id=user.id).join(
-                Library, Director.library_id == Library.id
-            ).add_columns(Library.name).first()
-
-
-            if not director_record or not director_record[1]:
-                return ""
-            return director_record[1]  # Library name
+            library_name = db.session.query(Library.name).select_from(Director).join(Library).filter(Director.user_id == user.id).scalar()
+            return library_name if library_name else ""
 
         return ""  # User is neither librarian nor owner
 

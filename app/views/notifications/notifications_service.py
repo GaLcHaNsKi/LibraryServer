@@ -92,12 +92,12 @@ def sendNotify(author, recipient, title, content, type_):
         return 1
 
 
-def deleteNotify(id: int):
+def deleteNotify(id: int, recipient_id: int):
     try:
         # Find notification by id
-        notification = Notification.query.get(id)
+        notification = Notification.query.filter_by(id=id, recipient_id=recipient_id).first()
         if not notification:
-            return 1  # Notification not found
+            return -1  # Notification not found or belongs to another user
 
         # Delete notification
         db.session.delete(notification)

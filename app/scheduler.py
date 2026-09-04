@@ -32,7 +32,7 @@ def start_schedulers():
     _scheduler.add_job(
         func=check_and_send_notifications,
         trigger="cron",
-        hour=0,
+        hour=8,
         minute=0,
         id="check_deadline_notifications",
         replace_existing=True,

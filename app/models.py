@@ -48,7 +48,7 @@ class Notification(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     author_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete="CASCADE"))
     recipient_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete="CASCADE"))
-    title = db.Column(db.String(25))
+    title = db.Column(db.String(50))
     content = db.Column(db.Text)
     type = db.Column(db.String(10))
     is_read = db.Column(db.Boolean, default=False)

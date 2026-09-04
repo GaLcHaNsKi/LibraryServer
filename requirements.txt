@@ -1,0 +1,10 @@
+APScheduler>=3.10,<4
+dropbox>=11.36,<13
+Flask>=3.0,<4
+Flask-Cors>=4.0,<7
+Flask-Migrate>=4.0,<5
+Flask-SocketIO>=5.3,<6
+Flask-SQLAlchemy>=3.1,<4
+flasgger>=0.9.7.1,<1
+Pillow>=10.2,<12
+python-dotenv>=1.0,<2

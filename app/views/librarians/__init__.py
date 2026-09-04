@@ -84,11 +84,12 @@ def librarians_delete():
     """
     librarian = request.form["librarian"]
     director = request.environ["user"]["nickname"]
+    director_id = request.environ["user"]["id"]
 
     if not isExists(librarian):
         return UserNotFoundResponse
 
-    res = dismissLibrarian(director, librarian)
+    res = dismissLibrarian(director_id, librarian)
     
     if res == 2:
         return UserNotFoundResponse

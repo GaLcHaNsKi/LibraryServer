@@ -1,8 +1,10 @@
-from flask import render_template, send_file
+from flask import abort, render_template, send_file, send_from_directory
+from pathlib import Path
 
 from app import app, basedir
 from app.middleware.auth_middleware import AuthMiddleware
 from app.middleware.librarymiddleware import LibraryMiddleware
+from app.middleware.security_middleware import SecurityMiddleware
 from app.views.auth import authBlueprint
 from app.views.librarians import librariansBlueprint
 from app.views.library import libraryBlueprint
@@ -35,8 +37,11 @@ from app.views.reference_tables import referencesBlueprint
 
 LASTEST_VERSION = "1-6"
 
+# Security is outermost so unauthenticated requests cannot send credentials or
+# large payloads over HTTP before the checks run.
 app.wsgi_app = LibraryMiddleware(app.wsgi_app, app)
 app.wsgi_app = AuthMiddleware(app.wsgi_app, app)
+app.wsgi_app = SecurityMiddleware(app.wsgi_app, app)
 
 app.register_blueprint(authBlueprint, url_prefix="/auth")
 app.register_blueprint(usersBlueprint, url_prefix="/users")
@@ -109,8 +114,11 @@ def download_apk(apk):
         description: File download
     security: []
     """
-    file = basedir + f"/releases/{apk}"
-    return send_file(file, download_name=apk, as_attachment=True)
+    # Do not turn a URL segment into an arbitrary filesystem path.
+    releases_dir = Path(basedir) / "releases"
+    if Path(apk).name != apk or not apk.endswith(".apk") or not (releases_dir / apk).is_file():
+        abort(404)
+    return send_from_directory(releases_dir, apk, as_attachment=True, download_name=apk)
 
 
 @app.route("/robots.txt")

@@ -9,6 +9,15 @@ booksBlueprint = Blueprint("books", __name__)
 
 LibraryClient = LibraryClient()
 
+
+def get_pagination():
+    """Bound pagination to prevent expensive unbounded database queries."""
+    page = request.args.get("page", 1, int)
+    take = request.args.get("take", 10, int)
+    if page < 1 or take < 1 or take > 100:
+        return None
+    return page, take
+
 @booksBlueprint.route("/", methods=["POST"])
 def addBookRoute():
     """
@@ -302,8 +311,10 @@ def getBooksRoute():
     """
     libraryId = request.environ["user"]["libraryId"]
 
-    page = request.args.get("page", 1, int)
-    take = request.args.get("take", 10, int)
+    pagination = get_pagination()
+    if not pagination:
+        return {"error": "page must be positive and take must be between 1 and 100"}, 400
+    page, take = pagination
 
     filters_str = request.form.get("filters")
 
@@ -325,8 +336,10 @@ def getBooksRoute():
 @booksBlueprint.route("/autofill/all", methods=["POST"])
 def getAutofillBooksRoute():
     """Search all libraries for publication data to prefill a new book."""
-    page = request.args.get("page", 1, int)
-    take = request.args.get("take", 10, int)
+    pagination = get_pagination()
+    if not pagination:
+        return {"error": "page must be positive and take must be between 1 and 100"}, 400
+    page, take = pagination
     try:
         filters = json.loads(request.form.get("filters", "{}"))
     except json.JSONDecodeError:
@@ -410,8 +423,10 @@ def getIssuedBooksRoute():
     """
     libraryId = request.environ["user"]["libraryId"]
 
-    page = request.args.get("page", 1, int)
-    take = request.args.get("take", 10, int)
+    pagination = get_pagination()
+    if not pagination:
+        return {"error": "page must be positive and take must be between 1 and 100"}, 400
+    page, take = pagination
 
     filters_str = request.form.get("filters")
 
@@ -450,7 +465,7 @@ def getIssuedBookRoute(onHandsBookId):
       500:
         description: Internal Server Error
     """
-    book = LibraryClient.getIssuedBook(onHandsBookId)
+    book = LibraryClient.getIssuedBook(onHandsBookId, request.environ["user"]["libraryId"])
     if book == -1:
         return BookNotFoundResponse
     elif book == 1:

@@ -1,6 +1,7 @@
 from flask import Blueprint, request
 
-from app.views.common_service import isExists, InternalErrorResponse, SuccessResponse, UserNotFoundResponse
+from app.models import Role, User
+from app.views.common_service import isExists, InternalErrorResponse, SuccessResponse, UserNotFoundResponse, ForbiddenResponse
 from app.views.notifications.notifications_service import get_notification_settings, sendNotify, deleteNotify, getNotify, set_notification_settings
 from app.views.users.users_service import isHired
 
@@ -42,13 +43,23 @@ def write_notify():
                 description: Internal Server Error
     """
     author = request.environ["user"]["nickname"]
+    author_id = request.environ["user"]["id"]
     recipient = request.form["recipient"]
     title = request.form["title"]
     text = request.form["text"]
     cmd = request.form["cmd"]
 
-    if not isExists(recipient):
+    recipient_user = User.query.filter_by(nickname=recipient).first()
+    if not recipient_user:
         return {"error": "Recipient not found"}, 404
+
+    # This is an internal library notification channel, not public messaging.
+    if author_id != recipient_user.id:
+        author_library = request.environ["user"].get("libraryId")
+        recipient_library = isHired(recipient)
+        if (not author_library or recipient_library in ("", 1, 2)
+                or recipient_library != request.environ["user"]["library"].name):
+            return ForbiddenResponse
 
     if sendNotify(author, recipient, title, text, "message"):
         return InternalErrorResponse
@@ -91,13 +102,18 @@ def write_offer():
                 description: Internal Server Error
     """
     author = request.environ["user"]["nickname"]
+    author_id = request.environ["user"]["id"]
     recipient = request.form["recipient"]
     title = request.form["title"]
     text = request.form["text"]
     cmd = request.form["cmd"]
 
-    if not isExists(recipient):
+    author_user = User.query.get(author_id)
+    recipient_user = User.query.filter_by(nickname=recipient).first()
+    if not recipient_user:
         return {"error": "Recipient not found"}, 404
+    if author_user.role != Role.OWNER or recipient_user.role != Role.LIBRARIAN:
+        return ForbiddenResponse
 
     # если директор хочет нанять, то нужно проверить, не нанят ли
     lib_name = isHired(recipient)
@@ -130,7 +146,10 @@ def delete_notify(id):
       500:
         description: Internal Server Error
     """
-    if deleteNotify(id):
+    result = deleteNotify(id, request.environ["user"]["id"])
+    if result == -1:
+        return {"error": "Notification not found"}, 404
+    if result:
         return InternalErrorResponse
 
     return SuccessResponse

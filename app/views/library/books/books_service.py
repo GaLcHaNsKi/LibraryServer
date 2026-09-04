@@ -781,7 +781,7 @@ class LibraryClient:
             elog(e, "book_service", "getIssuedBooks")
             return 1
 
-    def getIssuedBook(self, onHandsBookId: int) -> dict | int:
+    def getIssuedBook(self, onHandsBookId: int, libraryId: int) -> dict | int:
         """
         Получает одну выданную книгу по ID записи в OnHandsBook.
         Возвращает полные данные о книге + информацию о выдаче.
@@ -791,7 +791,7 @@ class LibraryClient:
             if not on_hands:
                 return -1  # Record not found
 
-            book = Book.query.filter_by(id=on_hands.book_id).first()
+            book = Book.query.filter_by(id=on_hands.book_id, library_id=libraryId).first()
             if not book:
                 return -1  # Book not found
 

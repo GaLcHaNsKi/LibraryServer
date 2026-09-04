@@ -4,6 +4,8 @@ import dropbox
 from dropbox.exceptions import ApiError
 
 from dotenv import load_dotenv
+from PIL import Image, UnidentifiedImageError
+from PIL.Image import DecompressionBombError
 load_dotenv()
 
 # DropBox credentials из переменных окружения
@@ -13,6 +15,10 @@ DROPBOX_REFRESH_TOKEN = os.getenv('DROPBOX_REFRESH_TOKEN')
 
 DROPBOX_FOLDER = '/covers'
 ALLOWED_EXTENSIONS = {'jpg', 'jpeg', 'png', 'gif'}
+EXTENSION_TO_FORMAT = {"jpg": "JPEG", "jpeg": "JPEG", "png": "PNG", "gif": "GIF"}
+# Reject decompression bombs before the file is copied to permanent storage.
+MAX_IMAGE_PIXELS = 40_000_000
+Image.MAX_IMAGE_PIXELS = MAX_IMAGE_PIXELS
 
 
 def get_dropbox_client():
@@ -56,6 +62,17 @@ def uploadToDropbox(photo):
     
     # Валидация расширения
     if not allowed_file(photo.filename):
+        return None
+
+    try:
+        image = Image.open(photo.stream)
+        if image.width * image.height > MAX_IMAGE_PIXELS:
+            return None
+        image.verify()
+        if image.format != EXTENSION_TO_FORMAT[get_extension(photo.filename)]:
+            return None
+        photo.stream.seek(0)
+    except (UnidentifiedImageError, DecompressionBombError, OSError, ValueError):
         return None
     
     dbx = get_dropbox_client()

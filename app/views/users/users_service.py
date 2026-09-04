@@ -156,9 +156,9 @@ def hireLibrarian(director_id, librarian):
     return 0
 
 
-def dismissLibrarian(director, librarian):
+def dismissLibrarian(director_id, librarian):
     try:
-        d = Director.query.filter_by(user_id=getUserIDByNickname(director)).first()
+        d = Director.query.filter_by(user_id=director_id).first()
         
         if not d:
             return -1  # it is not director
@@ -169,7 +169,7 @@ def dismissLibrarian(director, librarian):
             return 1  # User not found
 
         # Find librarian record by user_id
-        librarian_record = Librarian.query.filter_by(user_id=user.id).first()
+        librarian_record = Librarian.query.filter_by(user_id=user.id, director_id=director_id).first()
         if not librarian_record:
             return 2  # Librarian record not found
 

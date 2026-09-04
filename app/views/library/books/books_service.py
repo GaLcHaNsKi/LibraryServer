@@ -6,7 +6,7 @@ from sqlalchemy.orm import joinedload
 from app.views.common_service import isExists
 from app.views.logs import elog
 from app import db
-from app.models import Library, Book, Keyword, BookTopic, BiblePlaceInBook, OnHandsBook, BookGenre, BibleBook, \
+from app.models import Library, Book, Keyword, BookTopic, BiblePlaceInBook, OnHandsBook, LibrarySyncOperation, BookGenre, BibleBook, \
     BookCondition, DocumentType, Place, Shelf
 
 
@@ -44,9 +44,14 @@ class LibraryClient:
                  pages_quantity=1,
                  keywords=None,  # [{"keyword": "keyword1", "pages": "pages1"}, ...]
                  topics=None,  # [{"topicId": "topic1_id", "pages": "pages1"}, ...]
-                 bible_references=None  # [{"bibleBooId": "bible_book_id", "chapter": n, "verse": n, "pages": "pages1"}]
+                 bible_references=None,  # [{"bibleBooId": "bible_book_id", "chapter": n, "verse": n, "pages": "pages1"}]
+                 operation_id=None
                  ):
         try:
+            if operation_id and LibrarySyncOperation.query.filter_by(
+                library_id=libraryId, operation_id=operation_id
+            ).first():
+                return 0
             # Find library by name
             library_record = Library.query.filter_by(id=libraryId).first()
             if not library_record:
@@ -55,8 +60,16 @@ class LibraryClient:
             if not inventory_num or not str(inventory_num).strip():
                 return 5  # Inventory number is required
 
+            if Book.query.filter_by(library_id=libraryId, inventory_num=inventory_num).first():
+                return 6  # Inventory number already exists in this library
+
             if not location_id or not shelve_id:
                 return 2  # Missing location or shelf
+
+            if quantity < 0 or (pages_quantity is not None and pages_quantity <= 0) or (
+                transfer_year is not None and transfer_year <= 1000
+            ):
+                return 7
 
             place = Place.query.filter_by(id=location_id, library_id=libraryId).first()
             if not place:
@@ -110,6 +123,10 @@ class LibraryClient:
                 self._updateTopics(new_book, topics)
             if bible_references:
                 self._updateBibleReferences(new_book, bible_references)
+            if operation_id:
+                db.session.add(LibrarySyncOperation(
+                    library_id=libraryId, operation_id=operation_id, operation_type="add_book"
+                ))
 
             # Commit all changes
             db.session.commit()
@@ -120,11 +137,15 @@ class LibraryClient:
             elog(e, file="book_service", function="addBook")
             return 1
 
-    def issueBook(self, bookId, libraryId, recipient_name, deadline):
+    def issueBook(self, bookId, libraryId, recipient_name, deadline, operation_id=None):
         """
         Выдает книгу: уменьшает количество на 1 и добавляет запись в OnHandsBook.
         """
         try:
+            if operation_id and LibrarySyncOperation.query.filter_by(
+                library_id=libraryId, operation_id=operation_id
+            ).first():
+                return 0
             # Get recipient_id
             recipient_id = isExists(recipient_name)
 
@@ -149,6 +170,10 @@ class LibraryClient:
                 return_date=deadline
             )
             db.session.add(on_hands_book)
+            if operation_id:
+                db.session.add(LibrarySyncOperation(
+                    library_id=libraryId, operation_id=operation_id, operation_type="issue_book"
+                ))
 
             # Commit changes
             db.session.commit()
@@ -159,11 +184,15 @@ class LibraryClient:
             elog(e, "book_service", "issueBook")
             return 1
 
-    def returnBook(self, bookId, libraryId) -> int:
+    def returnBook(self, bookId, libraryId, operation_id=None) -> int:
         """
         Возвращает книгу: увеличивает количество на 1 и удаляет запись из OnHandsBook.
         """
         try:
+            if operation_id and LibrarySyncOperation.query.filter_by(
+                library_id=libraryId, operation_id=operation_id
+            ).first():
+                return 0
             # Get book
             book = Book.query.filter_by(id=bookId, library_id=libraryId).first()
             if not book:
@@ -179,6 +208,10 @@ class LibraryClient:
 
             # Increase quantity
             book.quantity += 1
+            if operation_id:
+                db.session.add(LibrarySyncOperation(
+                    library_id=libraryId, operation_id=operation_id, operation_type="return_book"
+                ))
 
             db.session.commit()
             return 0
@@ -349,6 +382,24 @@ class LibraryClient:
 
             if "inventory_num" in changes and (not changes["inventory_num"] or not str(changes["inventory_num"]).strip()):
                 return 5  # Inventory number is required
+
+            if "inventory_num" in changes:
+                duplicate = Book.query.filter(
+                    Book.library_id == libraryId,
+                    Book.inventory_num == str(changes["inventory_num"]).strip(),
+                    Book.id != book.id
+                ).first()
+                if duplicate:
+                    return 6  # Inventory number already exists
+
+            if "quantity" in changes and (not isinstance(changes["quantity"], int) or changes["quantity"] < 0):
+                return 7
+            if "pages_quantity" in changes and (not isinstance(changes["pages_quantity"], int) or changes["pages_quantity"] <= 0):
+                return 7
+            if "transfer_year" in changes and changes["transfer_year"] is not None and (
+                not isinstance(changes["transfer_year"], int) or changes["transfer_year"] <= 1000
+            ):
+                return 7
 
             if "location_id" in changes or "shelve_id" in changes:
                 loc_id = changes.get("location_id", book.location_id)

@@ -76,13 +76,18 @@ def sendNotify(author, recipient, title, content, type_):
         db.session.commit()
 
         # Отправляем уведомление через WebSocket
-        emit_notification(recipient_user.id, {
+        delivered = emit_notification(recipient_user.id, {
             "id": notification.id,
             "author": author,
             "title": title,
             "text": content,
             "type": type_
         })
+        if delivered:
+            # ``is_read`` is the existing delivery marker.  Keep the record in
+            # the list, but do not replay it after a socket reconnect.
+            notification.is_read = True
+            db.session.commit()
 
         return 0
 

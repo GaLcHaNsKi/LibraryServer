@@ -72,6 +72,8 @@ def register():
         return {"error": "Internal Server Error"}, 500
     if status == "taken":  # никнейм занят
         return {"error": "Nickname is taken"}, 409
+    if status == "library_taken":
+        return {"error": "Library name is taken"}, 409
 
     return {"message": "Success!"}, 200
 

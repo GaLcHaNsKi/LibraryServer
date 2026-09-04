@@ -53,6 +53,8 @@ def getShelveByIdRoute(shelveId):
 
     if shelve == 1:
         return InternalErrorResponse
+    if shelve == -1:
+        return {"error": "Shelf not found"}, 404
 
     return shelve
 
@@ -75,7 +77,10 @@ def deleteShelfRoute(shelveId):
         description: Internal Server Error
     """
     libraryId = request.environ["user"]["libraryId"]
-    if deleteShelf(libraryId, shelveId):
+    code = deleteShelf(libraryId, shelveId)
+    if code == -1:
+        return {"error": "Shelf not found"}, 404
+    if code:
         return InternalErrorResponse
 
     return SuccessResponse
@@ -112,7 +117,14 @@ def editShelfRoute(shelveId):
     shelf_name = request.form.get("shelf_name")
     description = request.form.get("description")
 
-    if editShelf(libraryId, shelveId, shelf_name, description):
+    code = editShelf(libraryId, shelveId, shelf_name, description)
+    if code == -1:
+        return {"error": "Shelf not found"}, 404
+    if code == 2:
+        return {"error": "Shelf name is required"}, 400
+    if code == 3:
+        return {"error": "Shelf name already exists"}, 409
+    if code:
         return InternalErrorResponse
 
     return SuccessResponse
@@ -149,7 +161,14 @@ def addShelfRoute(placeId):
     shelf_name = request.form["shelf_name"]
     description = request.form.get("description")
 
-    if addShelf(libraryId, int(placeId), shelf_name, description):
+    code = addShelf(libraryId, int(placeId), shelf_name, description)
+    if code == -1:
+        return {"error": "Place not found"}, 404
+    if code == 2:
+        return {"error": "Shelf name is required"}, 400
+    if code == 3:
+        return {"error": "Shelf name already exists"}, 409
+    if code:
         return InternalErrorResponse
 
     return SuccessResponse

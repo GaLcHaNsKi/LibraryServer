@@ -1,6 +1,7 @@
 from datetime import datetime
 from flask import Blueprint, request
 from app.views.library.books.books_service import LibraryClient
+from app.models import Book, LibrarySyncOperation
 from app.views.dropbox_operations import uploadToDropbox
 from app.views.common_service import InternalErrorResponse, SuccessResponse, BookNotFoundResponse, LibraryNotFoundResponse
 import json
@@ -49,9 +50,27 @@ def addBookRoute():
         return {"error": "Invalid JSON in data field"}, 400
     
     libraryId = request.environ["user"]["libraryId"]
+    operation_id = data.get("operation_id")
+    if operation_id and LibrarySyncOperation.query.filter_by(
+        library_id=libraryId, operation_id=operation_id
+    ).first():
+        return SuccessResponse
+    if Book.query.filter_by(library_id=libraryId, inventory_num=data.get("inventory_num", "")).first():
+        return {"error_code": "INVENTORY_NUMBER_CONFLICT", "error": "Inventory number already exists"}, 409
+
+    try:
+        numeric_fields = ("writing_year", "transfer_year", "publication_year", "edition_num", "isbn1", "isbn2",
+                          "document_type_id", "genre_id", "quantity", "condition_id", "pages_quantity")
+        numbers = {field: int(data[field]) if data.get(field) not in (None, "") else None for field in numeric_fields}
+        location_id = int(data.get("location_id"))
+        shelve_id = int(data.get("shelve_id"))
+    except (TypeError, ValueError):
+        return {"error": "Numeric fields contain an invalid value"}, 400
     
     cover_photo = request.files.get("cover-photo", "")
     photo_result = uploadToDropbox(cover_photo) if cover_photo else None
+    if cover_photo and not photo_result:
+        return {"error_code": "COVER_UPLOAD_FAILED", "error": "Cover could not be uploaded"}, 422
     photo_url = photo_result.get('url', '') if photo_result else ""
 
     code = LibraryClient.addBook(
@@ -64,30 +83,31 @@ def addBookRoute():
         lang_original=data.get("lang_original", ""),
         author_ru=data.get("author_ru", ""),
         author_in_original_lang=data.get("author_in_original_lang", ""),
-        writing_year=int(data.get("writing_year", 0)) if data.get("writing_year") else None,
-        transfer_year=int(data.get("transfer_year", 0)) if data.get("transfer_year") else None,
+        writing_year=numbers["writing_year"],
+        transfer_year=numbers["transfer_year"],
         translators=data.get("translators", ""),
         explanation_ru=data.get("explanation_ru", ""),
         applications=data.get("applications", ""),
         dimensions=data.get("dimensions", ""),
-        publication_year=int(data.get("publication_year", 0)) if data.get("publication_year") else None,
-        edition_num=int(data.get("edition_num", 0)) if data.get("edition_num") else None,
+        publication_year=numbers["publication_year"],
+        edition_num=numbers["edition_num"],
         publishing_house=data.get("publishing_house", ""),
-        isbn1=int(data.get("isbn1", 0)) if data.get("isbn1") else None,
-        isbn2=int(data.get("isbn2", 0)) if data.get("isbn2") else None,
+        isbn1=numbers["isbn1"],
+        isbn2=numbers["isbn2"],
         abstract=data.get("abstract", ""),
-        document_type_id=int(data.get("document_type_id")) if data.get("document_type_id") else None,
-        book_genre_id=int(data.get("genre_id")) if data.get("genre_id") else None,
+        document_type_id=numbers["document_type_id"],
+        book_genre_id=numbers["genre_id"],
         cover_photo_url=photo_url,
         age_of_reader=data.get("age_of_reader", ""),
-        quantity=int(data.get("quantity", 1)) if data.get("quantity") else 1,
-        location_id=int(data.get("location_id")),
-        shelve_id=int(data.get("shelve_id")),
-        condition_id=int(data.get("condition_id")) if data.get("condition_id") else None,
-        pages_quantity=int(data.get("pages_quantity", 1)) if data.get("pages_quantity") else None,
+        quantity=numbers["quantity"] if numbers["quantity"] is not None else 1,
+        location_id=location_id,
+        shelve_id=shelve_id,
+        condition_id=numbers["condition_id"],
+        pages_quantity=numbers["pages_quantity"],
         keywords=data.get("keywords", []),
         topics=data.get("topics", []),
-        bible_references=data.get("bible_references", [])
+        bible_references=data.get("bible_references", []),
+        operation_id=operation_id
     )
 
     if code == 1:
@@ -100,7 +120,10 @@ def addBookRoute():
         return {"error": "Выбрана неверная полка"}, 400
     elif code == 5:
         return {"error": "Заполните инвентарный номер"}, 400
-
+    elif code == 6:
+        return {"error_code": "INVENTORY_NUMBER_CONFLICT", "error": "Inventory number already exists"}, 409
+    elif code == 7:
+        return {"error": "Invalid book quantity, page count, or transfer year"}, 400
     return SuccessResponse
 
 
@@ -146,10 +169,12 @@ def issueBookRoute(bookId):
     except ValueError:
         return {"error": "Expected date for deadline"}, 400
 
-    code = LibraryClient.issueBook(bookId, libraryId, recipient_name, deadline)
+    code = LibraryClient.issueBook(bookId, libraryId, recipient_name, deadline, request.form.get("operation_id"))
 
     if code == -1:
         return BookNotFoundResponse
+    elif code == -2:
+        return {"error_code": "BOOK_QUANTITY_CONFLICT", "error": "No copies available"}, 409
     elif code == 1:
         return InternalErrorResponse
 
@@ -177,10 +202,12 @@ def returnBookRoute(bookId):
         description: Internal Server Error
     """
     libraryId = request.environ["user"]["libraryId"]
-    code = LibraryClient.returnBook(bookId, libraryId)
+    code = LibraryClient.returnBook(bookId, libraryId, request.form.get("operation_id"))
 
     if code == -1:
         return BookNotFoundResponse
+    elif code == -2:
+        return {"error_code": "ISSUE_NOT_FOUND", "error": "No issue record found"}, 409
     elif code == 1:
         return InternalErrorResponse
 
@@ -253,6 +280,12 @@ def editBookRoute(bookId):
         data = json.loads(request.form.get("data", "{}"))
     except json.JSONDecodeError:
         data = {}
+
+    # The create endpoint historically uses ``genre_id``, while the model field
+    # used by updates is named ``book_genre_id``. Accept the former from older
+    # Android clients as well.
+    if "genre_id" in data and "book_genre_id" not in data:
+        data["book_genre_id"] = data.pop("genre_id")
     
     # Обработка обложки
     cover_photo = request.files.get("cover-photo")
@@ -275,6 +308,10 @@ def editBookRoute(bookId):
         return {"error": "Выбрана неверная полка"}, 400
     elif code == 5:
         return {"error": "Заполните инвентарный номер"}, 400
+    elif code == 6:
+        return {"error_code": "INVENTORY_NUMBER_CONFLICT", "error": "Inventory number already exists"}, 409
+    elif code == 7:
+        return {"error": "Invalid book quantity, page count, or transfer year"}, 400
 
     return SuccessResponse
 

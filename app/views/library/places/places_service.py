@@ -39,12 +39,17 @@ def getPlaceById(libraryId: int, placeId: int) -> dict | int:
     
 def addPlace(libraryId: int, place_name: str, description: str) -> int:
     try:
+        if not place_name or not place_name.strip():
+            return 2
+        if Place.query.filter_by(library_id=libraryId, place_name=place_name.strip()).first():
+            return 3
         place = Place(place_name=place_name, description=description, library_id=libraryId)
         db.session.add(place)
         db.session.commit()
         return 0
 
     except Exception as e:
+        db.session.rollback()
         elog(e, "library_service", "addPlace")
         return 1
 
@@ -55,6 +60,11 @@ def editPlace(libraryId: int, placeId: int, place_name: str, description: str) -
             return -1
 
         if place_name:
+            duplicate = Place.query.filter(
+                Place.library_id == libraryId, Place.place_name == place_name.strip(), Place.id != place.id
+            ).first()
+            if duplicate:
+                return 3
             place.place_name = place_name
         if description:
             place.description = description
@@ -62,6 +72,7 @@ def editPlace(libraryId: int, placeId: int, place_name: str, description: str) -
         return 0
 
     except Exception as e:
+        db.session.rollback()
         elog(e, "library_service", "editPlace")
         return 1
 
@@ -76,5 +87,6 @@ def deletePlace(libraryId: int, placeId: int) -> int:
         return 0
 
     except Exception as e:
+        db.session.rollback()
         elog(e, "library_service", "deletePlace")
         return 1

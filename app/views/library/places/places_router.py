@@ -52,6 +52,8 @@ def getPlaceRoute(placeId):
 
     if place == 1:
         return InternalErrorResponse
+    if place == -1:
+        return {"error": "Place not found"}, 404
 
     return place
 
@@ -84,7 +86,12 @@ def addPlaceRoute():
     place_name = request.form["name"]
     description = request.form.get("description")
 
-    if addPlace(libraryId, place_name, description):
+    code = addPlace(libraryId, place_name, description)
+    if code == 2:
+        return {"error": "Place name is required"}, 400
+    if code == 3:
+        return {"error": "Place name already exists"}, 409
+    if code:
         return InternalErrorResponse
 
     return SuccessResponse
@@ -121,7 +128,12 @@ def editPlaceRoute(placeId):
     place_name = request.form.get("place_name")
     description = request.form.get("description")
 
-    if editPlace(libraryId, placeId, place_name, description):
+    code = editPlace(libraryId, placeId, place_name, description)
+    if code == -1:
+        return {"error": "Place not found"}, 404
+    if code == 3:
+        return {"error": "Place name already exists"}, 409
+    if code:
         return InternalErrorResponse
 
     return SuccessResponse
@@ -145,7 +157,10 @@ def deletePlaceRoute(placeId):
         description: Internal Server Error
     """
     libraryId = request.environ["user"]["libraryId"]
-    if deletePlace(libraryId, placeId):
+    code = deletePlace(libraryId, placeId)
+    if code == -1:
+        return {"error": "Place not found"}, 404
+    if code:
         return InternalErrorResponse
 
     return SuccessResponse

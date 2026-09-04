@@ -26,6 +26,8 @@ def addUser(nickname, coded_password, role, name="", description=""):
         db.session.flush()  # Ensure user.id is available for foreign keys
 
         if role == "OWNER":
+            if Library.query.filter_by(name=name).first():
+                return "library_taken"
             # Create library
             new_library = Library(
                 name=name,

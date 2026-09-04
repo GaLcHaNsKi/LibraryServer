@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from . import db
 
 from sqlalchemy import Enum, CheckConstraint
@@ -160,6 +162,17 @@ class OnHandsBook(db.Model):
     issue_date = db.Column(db.DateTime)
     return_date = db.Column(db.DateTime)
     __table_args__ = (CheckConstraint('issue_date <= return_date'),)
+
+
+class LibrarySyncOperation(db.Model):
+    """Makes retried offline mutations safe to apply more than once."""
+    __tablename__ = 'library_sync_operations'
+    id = db.Column(db.Integer, primary_key=True)
+    library_id = db.Column(db.Integer, db.ForeignKey('libraries.id', ondelete="CASCADE"), nullable=False)
+    operation_id = db.Column(db.String(36), nullable=False)
+    operation_type = db.Column(db.String(20), nullable=False)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    __table_args__ = (db.UniqueConstraint('library_id', 'operation_id'),)
 
 
 class NotificationSetting(db.Model):

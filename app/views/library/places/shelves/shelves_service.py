@@ -40,6 +40,10 @@ def addShelf(libraryId: int, placeId: int, shelf_name: str, description: str) ->
         place = Place.query.filter_by(id=placeId, library_id=libraryId).first()
         if not place:
             return -1
+        if not shelf_name or not shelf_name.strip():
+            return 2
+        if Shelf.query.filter_by(place_id=placeId, shelve_name=shelf_name.strip()).first():
+            return 3
 
         shelf = Shelf(place_id=placeId, shelve_name=shelf_name, description=description)
         db.session.add(shelf)
@@ -47,6 +51,7 @@ def addShelf(libraryId: int, placeId: int, shelf_name: str, description: str) ->
         return 0
 
     except Exception as e:
+        db.session.rollback()
         elog(e, "shelve_service", "addShelf")
         return 1
 
@@ -56,12 +61,21 @@ def editShelf(libraryId: int, shelveId: int, shelf_name: str, description: str) 
         if not shelf:
             return -1
 
+        if not shelf_name or not shelf_name.strip():
+            return 2
+        duplicate = Shelf.query.filter(
+            Shelf.place_id == shelf.place_id, Shelf.shelve_name == shelf_name.strip(), Shelf.id != shelf.id
+        ).first()
+        if duplicate:
+            return 3
+
         shelf.shelve_name = shelf_name
         shelf.description = description
         db.session.commit()
         return 0
 
     except Exception as e:
+        db.session.rollback()
         elog(e, "shelve_service", "editShelf")
         return 1
 
@@ -77,5 +91,6 @@ def deleteShelf(libraryId: int, shelveId: int) -> int:
         return 0
 
     except Exception as e:
+        db.session.rollback()
         elog(e, "shelve_service", "deleteShelf")
         return 1

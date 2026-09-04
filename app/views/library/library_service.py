@@ -47,6 +47,9 @@ def editLibrary(libraryId, directorId, changes: dict):
             return -2  # Forbidden
 
         if "name" in changes:
+            duplicate = Library.query.filter(Library.name == changes["name"], Library.id != library.id).first()
+            if duplicate:
+                return 3
             library.name = changes["name"]
         if "description" in changes:
             library.description = changes["description"]

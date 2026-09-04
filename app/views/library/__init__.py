@@ -88,6 +88,8 @@ def edit_library():
         return ForbiddenResponse
     elif code == 1:
         return InternalErrorResponse
+    elif code == 3:
+        return {"error": "Library name already exists"}, 409
 
     return SuccessResponse
 

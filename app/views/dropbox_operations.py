@@ -1,4 +1,5 @@
-from uuid import uuid4
+from urllib.parse import unquote, urlparse
+from uuid import UUID, uuid4
 import os
 import dropbox
 from dropbox.exceptions import ApiError
@@ -45,6 +46,29 @@ def allowed_file(filename):
 def get_extension(filename):
     """Получает расширение файла"""
     return filename.rsplit('.', 1)[-1].lower()
+
+
+def _get_dropbox_path(path_or_url):
+    """Возвращает путь созданной приложением обложки по пути или публичной ссылке."""
+    if not path_or_url:
+        return None
+    if path_or_url.startswith(f"{DROPBOX_FOLDER}/"):
+        return path_or_url
+
+    parsed = urlparse(path_or_url)
+    hostname = (parsed.hostname or '').lower()
+    if hostname != 'dropbox.com' and not hostname.endswith(('.dropbox.com', '.dropboxusercontent.com')):
+        return None
+
+    filename = unquote(parsed.path.rstrip('/').rsplit('/', 1)[-1])
+    stem, extension = os.path.splitext(filename)
+    if extension.lstrip('.').lower() not in ALLOWED_EXTENSIONS:
+        return None
+    try:
+        UUID(stem)
+    except ValueError:
+        return None
+    return f"{DROPBOX_FOLDER}/{filename}"
 
 
 def uploadToDropbox(photo):
@@ -101,6 +125,9 @@ def uploadToDropbox(photo):
         
         # Получаем публичную ссылку
         public_url = getPublicLink(dropbox_path)
+        if not public_url:
+            deleteFromDropbox(dropbox_path)
+            return None
         
         # Возвращаем путь и публичную ссылку
         return {
@@ -113,16 +140,17 @@ def uploadToDropbox(photo):
         return None
 
 
-def deleteFromDropbox(dropbox_path):
+def deleteFromDropbox(path_or_url):
     """
     Удаляет файл из DropBox
     
     Args:
-        dropbox_path: Путь файла в DropBox
+        path_or_url: Путь файла в DropBox или созданная приложением публичная ссылка
         
     Returns:
         bool: True если успешно, False при ошибке
     """
+    dropbox_path = _get_dropbox_path(path_or_url)
     if not dropbox_path:
         return False
     

@@ -2,7 +2,7 @@ from datetime import datetime
 from flask import Blueprint, request
 from app.views.library.books.books_service import LibraryClient
 from app.models import Book, LibrarySyncOperation
-from app.views.dropbox_operations import uploadToDropbox
+from app.views.dropbox_operations import deleteFromDropbox, uploadToDropbox
 from app.views.common_service import InternalErrorResponse, SuccessResponse, BookNotFoundResponse, LibraryNotFoundResponse
 import json
 
@@ -108,6 +108,10 @@ def addBookRoute():
         bible_references=data.get("bible_references", []),
         operation_id=operation_id
     )
+
+    # If the database rejected the book, do not leave its uploaded cover orphaned.
+    if code != 0 and photo_result:
+        deleteFromDropbox(photo_result.get('path'))
 
     if code == 1:
         return InternalErrorResponse
@@ -242,6 +246,8 @@ def deleteBookRoute(bookId):
         description: Internal Server Error
     """
     libraryId = request.environ["user"]["libraryId"]
+    book = Book.query.filter_by(id=bookId, library_id=libraryId).first()
+    cover_photo_url = book.cover_photo_url if book else None
     code = LibraryClient.deleteBook(bookId, libraryId)
 
     if code == -1:
@@ -249,6 +255,8 @@ def deleteBookRoute(bookId):
     elif code == 1:
         return InternalErrorResponse
 
+    if cover_photo_url:
+        deleteFromDropbox(cover_photo_url)
     return SuccessResponse
 
 
@@ -294,14 +302,26 @@ def editBookRoute(bookId):
     if "genre_id" in data and "book_genre_id" not in data:
         data["book_genre_id"] = data.pop("genre_id")
     
+    library_id = request.environ["user"]["libraryId"]
+    current_book = Book.query.filter_by(id=bookId, library_id=library_id).first()
+    old_cover_url = current_book.cover_photo_url if current_book else None
+
     # Обработка обложки
     cover_photo = request.files.get("cover-photo")
+    photo_result = None
+    cover_upload_failed = False
     if cover_photo:
         photo_result = uploadToDropbox(cover_photo)
         if photo_result:
             data["cover_photo_url"] = photo_result.get('url', '')
+        else:
+            cover_upload_failed = True
     
-    code = LibraryClient.editBook(bookId, request.environ["user"]["libraryId"], data)
+    code = LibraryClient.editBook(bookId, library_id, data)
+
+    if code != 0 and photo_result:
+        # The new cover is unused when validation or saving the book failed.
+        deleteFromDropbox(photo_result.get('path'))
 
     if code == -1:
         return BookNotFoundResponse
@@ -320,6 +340,16 @@ def editBookRoute(bookId):
     elif code == 7:
         return {"error": "Invalid book quantity, page count, or transfer year"}, 400
 
+    if photo_result and old_cover_url and old_cover_url != photo_result.get('url'):
+        deleteFromDropbox(old_cover_url)
+    if cover_upload_failed:
+        return {
+            "message": "Success",
+            "warnings": [{
+                "code": "COVER_UPLOAD_FAILED",
+                "message": "Изменения сохранены, но новую обложку загрузить не удалось. Старая обложка оставлена."
+            }]
+        }, 200
     return SuccessResponse
 
 

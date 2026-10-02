@@ -2,10 +2,40 @@ from flask import Blueprint, request
 
 from app.models import Role, User
 from app.views.common_service import isExists, InternalErrorResponse, SuccessResponse, UserNotFoundResponse, ForbiddenResponse
-from app.views.notifications.notifications_service import get_notification_settings, sendNotify, deleteNotify, getNotify, set_notification_settings
+from app.views.notifications.notifications_service import (
+    deleteNotify,
+    get_notification_settings,
+    getNotify,
+    register_device_push_token,
+    sendNotify,
+    set_notification_settings,
+    unregister_device_push_token,
+)
 from app.views.users.users_service import isHired
 
 notificationsBlueprint = Blueprint("notifications", __name__)
+
+
+@notificationsBlueprint.route("/devices", methods=["POST"])
+def register_push_device():
+    """Registers the current Android device for FCM notifications."""
+    token = request.form.get("token", "").strip()
+    if len(token) < 20:
+        return {"error": "Invalid FCM token"}, 400
+    if register_device_push_token(request.environ["user"]["id"], token) != 0:
+        return InternalErrorResponse
+    return SuccessResponse
+
+
+@notificationsBlueprint.route("/devices", methods=["DELETE"])
+def unregister_push_device():
+    """Stops FCM delivery to the current Android device after logout."""
+    token = request.form.get("token", "").strip()
+    if not token:
+        return {"error": "FCM token is required"}, 400
+    if unregister_device_push_token(request.environ["user"]["id"], token) != 0:
+        return InternalErrorResponse
+    return SuccessResponse
 
 
 @notificationsBlueprint.route("/", methods=["POST"])

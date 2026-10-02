@@ -184,6 +184,16 @@ class NotificationSetting(db.Model):
     is_every_day = db.Column(db.Boolean)
 
 
+class DevicePushToken(db.Model):
+    """FCM registration token for one installed copy of the Android app."""
+    __tablename__ = 'device_push_tokens'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'), nullable=False, index=True)
+    token = db.Column(db.String(255), nullable=False, unique=True)
+    platform = db.Column(db.String(20), nullable=False, default='android')
+    updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
 class Keyword(db.Model):
     __tablename__ = 'keywords'
     id = db.Column(db.Integer, primary_key=True)

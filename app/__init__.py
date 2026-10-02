@@ -1,7 +1,6 @@
 from flask import Flask
 from flask_cors import CORS
 from flasgger import Swagger
-from flask_socketio import SocketIO
 import os
 
 from flask_sqlalchemy import SQLAlchemy
@@ -39,7 +38,6 @@ CORS(app, resources={r"/*": {"origins": allowed_origins}})
     
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
-socketio = SocketIO(app, cors_allowed_origins=allowed_origins, async_mode="threading")
 
 
 @app.after_request
@@ -68,7 +66,6 @@ def add_security_headers(response):
 
 from app import models
 from app import views
-from app import sockets
 from app.tools.init_db.fill_reference_tables import fillReferenceTables
 
 swagger_template = {

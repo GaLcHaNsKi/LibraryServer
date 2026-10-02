@@ -3,13 +3,15 @@
 
 Планировщик стартует автоматически при загрузке Flask-приложения
 (см. app/__init__.py), поэтому кроны работают при ЛЮБОМ способе запуска:
-- python run.py (socketio.run)
+- python run.py
 - flask run (в т.ч. с --debug)
 - gunicorn / uwsgi
 - WSGI (например, pythonanywhere)
 
 Все новые кроны добавляются в start_schedulers() — единая точка регистрации.
 """
+from datetime import datetime, timedelta
+
 from apscheduler.schedulers.background import BackgroundScheduler
 
 from app.crons.notification_cron import check_and_send_notifications
@@ -25,10 +27,9 @@ def start_schedulers():
 
     _scheduler = BackgroundScheduler()
 
-    # Ежедневная проверка сроков возврата книг (каждый день в 00:00).
-    # coalesce=True + большой misfire_grace_time: если сервер в 00:00 не
-    # работал, пропущенный запуск будет выполнен сразу после старта,
-    # а не потерян навсегда.
+    # Проверяем сроки сразу после запуска сервера и затем ежедневно в 08:00.
+    # next_run_time нужен, потому что хранилище задач находится в памяти:
+    # после полного перезапуска APScheduler сам не знает о пропущенном запуске.
     _scheduler.add_job(
         func=check_and_send_notifications,
         trigger="cron",
@@ -38,6 +39,7 @@ def start_schedulers():
         replace_existing=True,
         coalesce=True,
         misfire_grace_time=23 * 60 * 60,  # до 23 часов на «нагонку»
+        next_run_time=datetime.now() + timedelta(seconds=10),
     )
 
     _scheduler.start()

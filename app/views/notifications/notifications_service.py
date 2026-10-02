@@ -1,7 +1,7 @@
 from app import db
-from app.models import User, Notification, NotificationSetting
+from app.models import DevicePushToken, User, Notification, NotificationSetting
+from app.views.notifications.fcm_service import send_fcm_notification
 from app.views.logs import elog
-from app.sockets import emit_notification
 from sqlalchemy.orm import aliased
 
 
@@ -75,25 +75,48 @@ def sendNotify(author, recipient, title, content, type_):
         # Commit changes
         db.session.commit()
 
-        # Отправляем уведомление через WebSocket
-        delivered = emit_notification(recipient_user.id, {
-            "id": notification.id,
-            "author": author,
-            "title": title,
-            "text": content,
-            "type": type_
-        })
-        if delivered:
-            # ``is_read`` is the existing delivery marker.  Keep the record in
-            # the list, but do not replay it after a socket reconnect.
-            notification.is_read = True
-            db.session.commit()
+        send_fcm_notification(
+            recipient_user.id,
+            notification.id,
+            author,
+            title,
+            content,
+            type_,
+        )
 
         return 0
 
     except Exception as e:
         db.session.rollback()  # Roll back on error
         elog(e, file="notifications_service", function="sendNotify")
+        return 1
+
+
+def register_device_push_token(user_id: int, token: str, platform: str = 'android'):
+    """Associates a device token with the currently authenticated user."""
+    try:
+        device = DevicePushToken.query.filter_by(token=token).first()
+        if device:
+            device.user_id = user_id
+            device.platform = platform
+        else:
+            db.session.add(DevicePushToken(user_id=user_id, token=token, platform=platform))
+        db.session.commit()
+        return 0
+    except Exception as e:
+        db.session.rollback()
+        elog(e, file='notifications_service', function='register_device_push_token')
+        return 1
+
+
+def unregister_device_push_token(user_id: int, token: str):
+    try:
+        DevicePushToken.query.filter_by(user_id=user_id, token=token).delete()
+        db.session.commit()
+        return 0
+    except Exception as e:
+        db.session.rollback()
+        elog(e, file='notifications_service', function='unregister_device_push_token')
         return 1
 
 

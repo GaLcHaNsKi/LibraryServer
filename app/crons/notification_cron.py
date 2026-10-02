@@ -5,6 +5,23 @@ from app.models import OnHandsBook, Book, NotificationSetting, Library, User, Li
 from app.views.notifications.notifications_service import sendNotify
 
 
+def _notification_state(days_diff, notify_before_days, notify_after_days, is_every_day):
+    """Возвращает (нужно_уведомить, срок_ещё_не_прошёл)."""
+    before_days = max(notify_before_days or 0, 0)
+    after_days = max(notify_after_days or 0, 0)
+    every_day = bool(is_every_day)
+
+    if days_diff > 0:
+        should_notify = days_diff <= before_days and (days_diff == before_days or every_day)
+        return should_notify, should_notify
+    if days_diff == 0:
+        return True, True
+
+    overdue = -days_diff
+    should_notify = after_days > 0 and overdue <= after_days and (overdue == after_days or every_day)
+    return should_notify, False
+
+
 def check_and_send_notifications():
     print(f"Running notification cron at {datetime.now()}")
     with app.app_context():
@@ -56,27 +73,12 @@ def check_and_send_notifications():
                         is_every_day=False
                     )
 
-                should_notify = False
-                is_before = False
-
-                if days_diff > 0:
-                    # Еще не просрочена
-                    if days_diff <= setting.notify_before_days:
-                        if days_diff == setting.notify_before_days or setting.is_every_day:
-                            should_notify = True
-                            is_before = True
-                elif days_diff == 0:
-                    # Последний день
-                    should_notify = True  
-                    is_before = True
-                else:
-                    # Просрочена
-                    overdue = -days_diff
-                    # Условие: если notify_after_days = 0, то значит после просрочки не напоминаем (настроено так). Либо напоминаем 1 раз на нужный день, либо каждый день после этого дня
-                    if setting.notify_after_days > 0 and overdue >= setting.notify_after_days:
-                        if overdue == setting.notify_after_days or setting.is_every_day:
-                            should_notify = True
-                            is_before = False
+                should_notify, is_before = _notification_state(
+                    days_diff,
+                    setting.notify_before_days,
+                    setting.notify_after_days,
+                    setting.is_every_day,
+                )
 
                 if should_notify:
                     _send_personal_notification(user_id, role_type, library, book, oh_book, days_diff, is_before)

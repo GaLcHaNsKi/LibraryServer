@@ -69,8 +69,7 @@ def addBookRoute():
     
     cover_photo = request.files.get("cover-photo", "")
     photo_result = uploadToDropbox(cover_photo) if cover_photo else None
-    if cover_photo and not photo_result:
-        return {"error_code": "COVER_UPLOAD_FAILED", "error": "Cover could not be uploaded"}, 422
+    cover_upload_failed = bool(cover_photo and not photo_result)
     photo_url = photo_result.get('url', '') if photo_result else ""
 
     code = LibraryClient.addBook(
@@ -124,6 +123,14 @@ def addBookRoute():
         return {"error_code": "INVENTORY_NUMBER_CONFLICT", "error": "Inventory number already exists"}, 409
     elif code == 7:
         return {"error": "Invalid book quantity, page count, or transfer year"}, 400
+    if cover_upload_failed:
+        return {
+            "message": "Success",
+            "warnings": [{
+                "code": "COVER_UPLOAD_FAILED",
+                "message": "Книга добавлена, но обложку не удалось сохранить. Попробуйте добавить её позже."
+            }]
+        }, 200
     return SuccessResponse
 
 
@@ -422,8 +429,6 @@ def getBookRoute(bookId):
     book = LibraryClient.getBook(bookId, libraryId)
     if book == -1:
         return BookNotFoundResponse
-      
-    print(book)
 
     return book
 

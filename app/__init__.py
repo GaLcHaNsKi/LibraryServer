@@ -1,6 +1,7 @@
 from flask import Flask
 from flask_cors import CORS
 from flasgger import Swagger
+from werkzeug.exceptions import BadRequest
 import os
 
 from flask_sqlalchemy import SQLAlchemy
@@ -38,6 +39,12 @@ CORS(app, resources={r"/*": {"origins": allowed_origins}})
     
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
+
+
+@app.errorhandler(BadRequest)
+def handle_bad_request(_error):
+    """Keep malformed API requests JSON-shaped instead of returning Flask HTML."""
+    return {"error": "Invalid or missing request data"}, 400
 
 
 @app.after_request
@@ -103,10 +110,10 @@ with app.app_context():
     fillReferenceTables()
 
 # --- Фоновые задачи (кроны) ---
-# Планировщик стартует вместе с приложением, поэтому кроны работают при любом
-# способе запуска сервера (python run.py, flask run, gunicorn, WSGI и т.п.).
-# Чтобы запускать кроны отдельно/вручную — отключите автостарт: DISABLE_CRONS=1
-if os.environ.get("DISABLE_CRONS", "0") != "1":
+# Do not run an in-process scheduler in every WSGI worker: that produces
+# duplicate notifications. Start it in one dedicated process instead
+# (``python run_scheduler.py``), or explicitly opt in for local development.
+if os.environ.get("RUN_SCHEDULER", "0") == "1":
     from app.scheduler import start_schedulers
 
     start_schedulers()

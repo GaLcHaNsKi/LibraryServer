@@ -1,6 +1,6 @@
 from flask import Blueprint, request
 
-from app.views.users.users_service import deleteUser, getUserInfo, editUserNickname, editUserEmail, selfDismissLibrarian
+from app.views.users.users_service import deleteUser, getUserInfo, editUser, selfDismissLibrarian
 from app.views.common_service import InternalErrorResponse, SuccessResponse, UserNotFoundResponse
 
 usersBlueprint = Blueprint("users", __name__)
@@ -57,31 +57,21 @@ def edit_user():
             description: Internal Server Error
     """
     userId = request.environ["user"]["id"]
-    newNickname = request.form.get("nickname")
+    newNickname = request.form.get("nickname", "").strip()
     newEmail = request.form.get("email")
 
-    if not newNickname and newEmail is None:
-        return {"error": "Nothing to update"}, 400
+    if not newNickname:
+        return {"error": "Nickname is required"}, 400
 
-    # Смена никнейма (если передан)
-    if newNickname:
-        code = editUserNickname(userId, newNickname)
-        if code == -1:
-            return UserNotFoundResponse
-        elif code == -2:
-            return {"error": "Nickname already taken"}, 409
-        elif code == 1:
-            return InternalErrorResponse
-
-    # Смена email (если передан)
-    if newEmail is not None:
-        code = editUserEmail(userId, newEmail)
-        if code == -1:
-            return UserNotFoundResponse
-        elif code == -2:
-            return {"error": "Email already taken"}, 409
-        elif code == 1:
-            return InternalErrorResponse
+    code = editUser(userId, newNickname, newEmail)
+    if code == -1:
+        return UserNotFoundResponse
+    if code == -2:
+        return {"error": "Nickname already taken"}, 409
+    if code == -3:
+        return {"error": "Email already taken"}, 409
+    if code == 1:
+        return InternalErrorResponse
 
     return SuccessResponse
 

@@ -74,7 +74,9 @@ def edit_library():
     changes = {}
     if request.form.get("name"):
         changes["name"] = request.form["name"]
-    if request.form.get("description"):
+    # Проверяем наличие поля, а не его истинность: директор может очистить
+    # ранее заданное описание библиотеки.
+    if "description" in request.form:
         changes["description"] = request.form["description"]
 
     if not changes:

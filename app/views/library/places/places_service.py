@@ -53,7 +53,7 @@ def addPlace(libraryId: int, place_name: str, description: str) -> int:
         elog(e, "library_service", "addPlace")
         return 1
 
-def editPlace(libraryId: int, placeId: int, place_name: str, description: str) -> int:
+def editPlace(libraryId: int, placeId: int, place_name: str | None, description: str | None) -> int:
     try:
         place = Place.query.filter_by(id=placeId, library_id=libraryId).first()
         if not place:
@@ -66,7 +66,9 @@ def editPlace(libraryId: int, placeId: int, place_name: str, description: str) -
             if duplicate:
                 return 3
             place.place_name = place_name
-        if description:
+        # An empty string is an intentional request to clear the description;
+        # None means the client did not submit this field at all.
+        if description is not None:
             place.description = description
         db.session.commit()
         return 0

@@ -271,6 +271,9 @@ def set_notification_settings_route():
     except (ValueError, TypeError):
         return {"error": "Invalid notification settings"}, 400
 
+    if not (0 <= notify_before_days <= 365 and 0 <= notify_after_days <= 365):
+        return {"error": "Notification periods must be between 0 and 365 days"}, 400
+
     code = set_notification_settings(user_id, notify_before_days, notify_after_days, is_every_day)
 
     if code != 0:

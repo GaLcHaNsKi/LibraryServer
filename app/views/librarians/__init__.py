@@ -2,8 +2,7 @@ from flask import Blueprint, request
 
 from app.views.common_service import LibrarianAlreadyHiredResponse, OfferNotFoundResponse, isExists, InternalErrorResponse, UserNotFoundResponse, SuccessResponse
 from app.views.notifications import sendNotify
-from app.views.notifications.notifications_service import checkOffer
-from app.views.users.users_service import getUserIDByNickname, isHired, hireLibrarian, dismissLibrarian, \
+from app.views.users.users_service import getUserIDByNickname, isHired, acceptOffer, dismissLibrarian, \
     getListOfLibrarians
 
 librariansBlueprint = Blueprint("librarians", __name__)
@@ -36,21 +35,19 @@ def librarian_control_post():
     librarian = request.environ["user"]["nickname"]
     librarianId = request.environ["user"]["id"]
     
-    libName = isHired(librarian)
-    
-    if len(libName) > 0:
-        return LibrarianAlreadyHiredResponse
-    
-    notificationId = request.form["notificationId"]
-    
-    directorId = checkOffer(notificationId, librarianId)
-    
-    if directorId == -1:
+    notificationId = request.form.get("notificationId", type=int)
+    if notificationId is None:
+        return {"error": "notificationId is required"}, 400
+
+    code, directorId = acceptOffer(librarianId, notificationId)
+    if code == -1:
         return OfferNotFoundResponse
-    elif directorId == -2:
+    if code == -2:
         return ({"error": "You wasn't hired"}, 403)
-    
-    if hireLibrarian(directorId, librarian): return InternalErrorResponse
+    if code == -3:
+        return LibrarianAlreadyHiredResponse
+    if code != 0:
+        return InternalErrorResponse
 
     sendNotify(librarian, directorId, "У вас новый библиотекарь!", f"{librarian} присоединился к вам.",
                "message")

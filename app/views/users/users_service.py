@@ -47,57 +47,63 @@ def getUserInfo(userId):
         return 1
 
 
-def editUserNickname(userId, newNickname):
-    """
-    Меняет никнейм пользователя.
-    """
+def editUser(userId, newNickname, newEmail):
+    """Atomically updates the current user's nickname and email."""
     try:
         user = User.query.filter_by(id=userId).first()
         if not user:
             return -1
 
-        # Проверяем уникальность нового никнейма
         existing = User.query.filter_by(nickname=newNickname).first()
-        # Исключаем самого пользователя — сохранять свой же ник можно
         if existing and existing.id != user.id:
-            return -2  # Nickname already taken
+            return -2
 
-        user.nickname = newNickname
-        db.session.commit()
-        return 0
-
-    except Exception as e:
-        db.session.rollback()
-        elog(e, file="users_service", function="editUserNickname")
-        return 1
-
-
-def editUserEmail(userId, newEmail):
-    """
-    Меняет email пользователя.
-    """
-    try:
-        user = User.query.filter_by(id=userId).first()
-        if not user:
-            return -1
-
-        # Нормализуем пустую строку в None (email не обязателен)
         new_email = newEmail.strip() if newEmail else None
-
         if new_email:
-            # Проверяем уникальность нового email
             existing = User.query.filter_by(email=new_email).first()
             if existing and existing.id != user.id:
-                return -2  # Email already taken
+                return -3
 
+        user.nickname = newNickname
         user.email = new_email
         db.session.commit()
         return 0
 
     except Exception as e:
         db.session.rollback()
-        elog(e, file="users_service", function="editUserEmail")
+        elog(e, file="users_service", function="editUser")
         return 1
+
+
+def acceptOffer(librarian_id: int, notification_id: int):
+    """Hires a librarian and consumes the accepted offer in one transaction."""
+    try:
+        offer = Notification.query.filter_by(
+            id=notification_id, recipient_id=librarian_id, type="offer"
+        ).with_for_update().first()
+        if not offer:
+            return -1, None
+
+        librarian = Librarian.query.filter_by(user_id=librarian_id).with_for_update().first()
+        if not librarian:
+            return -2, None
+        if librarian.is_hired:
+            return -3, None
+
+        director = Director.query.filter_by(user_id=offer.author_id).first()
+        if not director or not director.library_id:
+            return -2, None
+
+        librarian.director_id = offer.author_id
+        librarian.library_id = director.library_id
+        librarian.is_hired = True
+        db.session.delete(offer)
+        db.session.commit()
+        return 0, offer.author_id
+    except Exception as e:
+        db.session.rollback()
+        elog(e, "users_service", "acceptOffer")
+        return 1, None
 
 
 def deleteUser(nickname):

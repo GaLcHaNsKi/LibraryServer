@@ -84,7 +84,7 @@ def addPlaceRoute():
     libraryId = request.environ["user"]["libraryId"]
 
     place_name = request.form["name"]
-    description = request.form.get("description")
+    description = request.form["description"] if "description" in request.form else None
 
     code = addPlace(libraryId, place_name, description)
     if code == 2:
@@ -126,7 +126,7 @@ def editPlaceRoute(placeId):
     """
     libraryId = request.environ["user"]["libraryId"]
     place_name = request.form.get("place_name")
-    description = request.form.get("description")
+    description = request.form["description"] if "description" in request.form else None
 
     code = editPlace(libraryId, placeId, place_name, description)
     if code == -1:

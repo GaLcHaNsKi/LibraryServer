@@ -1,5 +1,6 @@
 from app import db
 from app.models import BookGenre, DocumentType, BookCondition, BibleBook, Library
+from sqlalchemy import inspect
 from app.views.logs import elog
 
 
@@ -108,32 +109,50 @@ def _upsert_default_conditions():
 
 
 def _upsert_bible_books():
-    # Полный список 66 книг Библии (русские и английские названия)
+    # Полный список 66 книг Библии в используемом в приложении порядке.
+    # Английское название служит постоянным ключом: русские названия и сокращения
+    # можно безопасно исправлять без изменения ссылок книг на BibleBook.
     books = [
-        ("Бытие", "Genesis"), ("Исход", "Exodus"), ("Левит", "Leviticus"), ("Числа", "Numbers"),
-        ("Второзаконие", "Deuteronomy"), ("Иисус Навин", "Joshua"), ("Судьи", "Judges"), ("Руфь", "Ruth"),
-        ("1 Царств", "1 Samuel"), ("2 Царств", "2 Samuel"), ("3 Царств", "1 Kings"), ("4 Царств", "2 Kings"),
-        ("1 Паралипоменон", "1 Chronicles"), ("2 Паралипоменон", "2 Chronicles"), ("Ездра", "Ezra"),
-        ("Неемия", "Nehemiah"), ("Есфирь", "Esther"), ("Иов", "Job"), ("Псалтирь", "Psalms"),
-        ("Притчи", "Proverbs"), ("Экклезиаст", "Ecclesiastes"), ("Песня песней", "Song of Solomon"),
-        ("Исаия", "Isaiah"), ("Иеремия", "Jeremiah"), ("Плач Иеремии", "Lamentations"), ("Иезекииль", "Ezekiel"),
-        ("Даниил", "Daniel"), ("Осия", "Hosea"), ("Иоиль", "Joel"), ("Амос", "Amos"), ("Авдий", "Obadiah"),
-        ("Иона", "Jonah"), ("Михей", "Micah"), ("Наум", "Nahum"), ("Аввакум", "Habakkuk"), ("Софония", "Zephaniah"),
-        ("Аггей", "Haggai"), ("Захария", "Zechariah"), ("Малахия", "Malachi"),
-        ("Матфей", "Matthew"), ("Марк", "Mark"), ("Лука", "Luke"), ("Иоанн", "John"),
-        ("Деяния", "Acts"), ("Римлянам", "Romans"), ("1 Коринфянам", "1 Corinthians"), ("2 Коринфянам", "2 Corinthians"),
-        ("Галатам", "Galatians"), ("Ефесянам", "Ephesians"), ("Филиппийцам", "Philippians"), ("Колоссянам", "Colossians"),
-        ("1 Фессалоникийцам", "1 Thessalonians"), ("2 Фессалоникийцам", "2 Thessalonians"), ("1 Тимофею", "1 Timothy"), ("2 Тимофею", "2 Timothy"),
-        ("Титу", "Titus"), ("Филимону", "Philemon"), ("Евреям", "Hebrews"), ("Иаков", "James"),
-        ("1 Петра", "1 Peter"), ("2 Петра", "2 Peter"), ("1 Иоанна", "1 John"), ("2 Иоанна", "2 John"), ("3 Иоанна", "3 John"),
-        ("Иуда", "Jude"), ("Откровение", "Revelation")
+        ("Бытие", "Genesis", "Быт"), ("Исход", "Exodus", "Исх"), ("Левит", "Leviticus", "Лев"), ("Числа", "Numbers", "Чис"),
+        ("Второзаконие", "Deuteronomy", "Втор"), ("Иисуса Навина", "Joshua", "Нав"), ("Судьи", "Judges", "Суд"), ("Руфь", "Ruth", "Руф"),
+        ("1 Царств", "1 Samuel", "1 Цар"), ("2 Царств", "2 Samuel", "2 Цар"), ("3 Царств", "1 Kings", "3 Цар"), ("4 Царств", "2 Kings", "4 Цар"),
+        ("1 Паралипоменон", "1 Chronicles", "1 Пар"), ("2 Паралипоменон", "2 Chronicles", "2 Пар"), ("Ездра", "Ezra", "Езд"),
+        ("Неемия", "Nehemiah", "Неем"), ("Есфирь", "Esther", "Есф"), ("Иов", "Job", "Иов"), ("Псалтирь", "Psalms", "Пс"),
+        ("Притчи", "Proverbs", "Прит"), ("Екклесиаст", "Ecclesiastes", "Еккл"), ("Песни песней", "Song of Solomon", "Песн"),
+        ("Исаия", "Isaiah", "Ис"), ("Иеремия", "Jeremiah", "Иер"), ("Плач Иеремии", "Lamentations", "Плач"), ("Иезекииль", "Ezekiel", "Иез"),
+        ("Даниил", "Daniel", "Дан"), ("Осия", "Hosea", "Ос"), ("Иоиль", "Joel", "Иоил"), ("Амос", "Amos", "Ам"), ("Авдий", "Obadiah", "Авд"),
+        ("Иона", "Jonah", "Ион"), ("Михей", "Micah", "Мих"), ("Наум", "Nahum", "Наум"), ("Аввакум", "Habakkuk", "Авв"), ("Софония", "Zephaniah", "Соф"),
+        ("Аггей", "Haggai", "Агг"), ("Захария", "Zechariah", "Зах"), ("Малахия", "Malachi", "Мал"),
+        ("Матфея", "Matthew", "Мф"), ("Марка", "Mark", "Мк"), ("Луки", "Luke", "Лк"), ("Иоанна", "John", "Ин"),
+        ("Деяния", "Acts", "Деян"), ("Иакова", "James", "Иак"), ("1 Петра", "1 Peter", "1 Пет"), ("2 Петра", "2 Peter", "2 Пет"),
+        ("1 Иоанна", "1 John", "1 Ин"), ("2 Иоанна", "2 John", "2 Ин"), ("3 Иоанна", "3 John", "3 Ин"), ("Иуды", "Jude", "Иуд"),
+        ("Римлянам", "Romans", "Рим"), ("1 Коринфянам", "1 Corinthians", "1 Кор"), ("2 Коринфянам", "2 Corinthians", "2 Кор"),
+        ("Галатам", "Galatians", "Гал"), ("Ефесянам", "Ephesians", "Еф"), ("Филиппийцам", "Philippians", "Флп"), ("Колоссянам", "Colossians", "Кол"),
+        ("1 Фессалоникийцам", "1 Thessalonians", "1 Фес"), ("2 Фессалоникийцам", "2 Thessalonians", "2 Фес"),
+        ("1 Тимофею", "1 Timothy", "1 Тим"), ("2 Тимофею", "2 Timothy", "2 Тим"), ("Титу", "Titus", "Тит"),
+        ("Филимону", "Philemon", "Флм"), ("Евреям", "Hebrews", "Евр"), ("Откровение", "Revelation", "Откр")
     ]
 
-    # Avoid duplicates by comparing RU names
-    existing_ru = {b.ru for b in BibleBook.query.all()}
-    for ru, en in books:
-        if ru not in existing_ru:
-            db.session.add(BibleBook(ru=ru, en=en))
+    # ``flask db upgrade`` imports the application before the migration is
+    # applied. Do not select the new columns until that migration exists.
+    columns = {column["name"] for column in inspect(db.engine).get_columns("bible_books")}
+    if not {"abbreviation", "sort_order"}.issubset(columns):
+        return
+
+    existing_by_en = {b.en: b for b in BibleBook.query.all()}
+    for sort_order, (ru, en, abbreviation) in enumerate(books, start=1):
+        book = existing_by_en.get(en)
+        if book is None:
+            db.session.add(BibleBook(
+                ru=ru,
+                en=en,
+                abbreviation=abbreviation,
+                sort_order=sort_order,
+            ))
+        else:
+            book.ru = ru
+            book.abbreviation = abbreviation
+            book.sort_order = sort_order
 
 
 def fillReferenceTables():

@@ -56,12 +56,13 @@ def getConditions():
 
 def getBibleBooks():
     try:
-        books = BibleBook.query.order_by(BibleBook.id.asc()).all()
+        books = BibleBook.query.order_by(BibleBook.sort_order.asc(), BibleBook.id.asc()).all()
         return [
             {
                 "id": b.id,
                 "ru": b.ru,
                 "en": b.en,
+                "abbreviation": b.abbreviation,
             }
             for b in books
         ]
@@ -69,4 +70,3 @@ def getBibleBooks():
         elog(e, file="reference_tables_service", function="getBibleBooks")
         db.session.rollback()
         return 1
-

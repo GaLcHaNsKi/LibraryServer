@@ -215,6 +215,8 @@ class BibleBook(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     ru = db.Column(db.String(30))
     en = db.Column(db.String(30))
+    abbreviation = db.Column(db.String(20))
+    sort_order = db.Column(db.Integer, nullable=False, default=0)
 
 
 class BiblePlaceInBook(db.Model):

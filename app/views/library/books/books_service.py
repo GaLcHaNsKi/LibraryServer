@@ -1,7 +1,7 @@
 from datetime import datetime
 import re
 
-from sqlalchemy import String, Boolean, Integer
+from sqlalchemy import String, Boolean, Integer, or_
 from sqlalchemy.orm import joinedload
 
 from app.views.common_service import isExists
@@ -24,7 +24,7 @@ def _parse_bible_reference(value: object) -> tuple[str, int | None, int | None]:
         return search_value, None, None
 
     return (
-        match.group("book").strip(),
+        match.group("book").strip().rstrip("."),
         int(match.group("chapter")),
         int(match.group("verse")) if match.group("verse") else None,
     )
@@ -265,7 +265,10 @@ class LibraryClient:
                 elif key == "bible":
                     bible_book, chapter, verse = _parse_bible_reference(value)
                     query = query.outerjoin(Book.bible_places).outerjoin(BiblePlaceInBook.bible_book).filter(
-                        BibleBook.ru.ilike(f"%{bible_book}%"))
+                        or_(
+                            BibleBook.ru.ilike(f"%{bible_book}%"),
+                            BibleBook.abbreviation.ilike(bible_book),
+                        ))
                     if chapter is not None:
                         query = query.filter(BiblePlaceInBook.chapter == chapter)
                     if verse is not None:

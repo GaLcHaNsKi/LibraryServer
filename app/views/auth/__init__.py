@@ -53,9 +53,14 @@ def register():
                 description: Internal Server Error
     security: []
     """
-    nickname = request.form["nickname"]
+    nickname = request.form["nickname"].strip()
     password = request.form["password"]
     role = request.form["role"]
+
+    if not nickname or len(nickname) > 20:
+        return {"error": "Nickname must contain from 1 to 20 characters"}, 400
+    if not password:
+        return {"error": "Password is required"}, 400
 
     if role not in ROLES:
         return {"error": "This role is not exists"}, 404
@@ -63,8 +68,10 @@ def register():
     lib_name = None
     description = None
     if role == OWNER:
-        lib_name = request.form["library-name"]
-        description = request.form.get("library-description", "")
+        lib_name = request.form["library-name"].strip()
+        description = request.form.get("library-description", "").strip()
+        if not lib_name or len(lib_name) > 20:
+            return {"error": "Library name must contain from 1 to 20 characters"}, 400
 
     status = addUser(nickname, password, role, lib_name, description)
 

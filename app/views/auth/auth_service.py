@@ -1,5 +1,3 @@
-import hashlib
-
 from app import db
 from app.models import User, Role, Library, Librarian, Director
 from app.views.common_service import hashPassword
@@ -8,12 +6,16 @@ from app.views.logs import elog
 
 def addUser(nickname, coded_password, role, name="", description=""):
     try:
-        # Check if nickname is already taken
         existing_user = User.query.filter_by(nickname=nickname).first()
         if existing_user:
             return "taken"
 
-        # Hash the password
+        # Check the owner-specific unique field before adding anything to the
+        # session.  Returning after ``flush()`` left a pending User object
+        # behind and it could be committed by a later operation.
+        if role == "OWNER" and Library.query.filter_by(name=name).first():
+            return "library_taken"
+
         hash_passw = hashPassword(coded_password)
 
         # Create new user
@@ -26,9 +28,6 @@ def addUser(nickname, coded_password, role, name="", description=""):
         db.session.flush()  # Ensure user.id is available for foreign keys
 
         if role == "OWNER":
-            if Library.query.filter_by(name=name).first():
-                return "library_taken"
-            # Create library
             new_library = Library(
                 name=name,
                 director_id=new_user.id,

@@ -1,4 +1,5 @@
 from datetime import datetime
+import re
 
 from sqlalchemy import String, Boolean, Integer
 from sqlalchemy.orm import joinedload
@@ -8,6 +9,25 @@ from app.views.logs import elog
 from app import db
 from app.models import Library, Book, Keyword, BookTopic, BiblePlaceInBook, OnHandsBook, LibrarySyncOperation, BookGenre, BibleBook, \
     BookCondition, DocumentType, Place, Shelf
+
+
+_BIBLE_REFERENCE_PATTERN = re.compile(
+    r"^(?P<book>.+?)\s+(?P<chapter>\d+)(?:\s*[:：]\s*(?P<verse>\d+))?\s*$"
+)
+
+
+def _parse_bible_reference(value: object) -> tuple[str, int | None, int | None]:
+    """Extract ``book chapter[:verse]`` from a Bible search query when present."""
+    search_value = str(value).strip()
+    match = _BIBLE_REFERENCE_PATTERN.fullmatch(search_value)
+    if not match:
+        return search_value, None, None
+
+    return (
+        match.group("book").strip(),
+        int(match.group("chapter")),
+        int(match.group("verse")) if match.group("verse") else None,
+    )
 
 
 class LibraryClient:
@@ -243,8 +263,13 @@ class LibraryClient:
                 elif key == "keyword":
                     query = query.outerjoin(Book.keywords).filter(Keyword.keyword.ilike(f"%{value}%"))
                 elif key == "bible":
+                    bible_book, chapter, verse = _parse_bible_reference(value)
                     query = query.outerjoin(Book.bible_places).outerjoin(BiblePlaceInBook.bible_book).filter(
-                        BibleBook.ru.ilike(f"%{value}%"))
+                        BibleBook.ru.ilike(f"%{bible_book}%"))
+                    if chapter is not None:
+                        query = query.filter(BiblePlaceInBook.chapter == chapter)
+                    if verse is not None:
+                        query = query.filter(BiblePlaceInBook.verse == verse)
                 elif key == "location":
                     try:
                         location_id = int(value)

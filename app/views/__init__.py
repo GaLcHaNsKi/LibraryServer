@@ -12,31 +12,8 @@ from app.views.notifications import notificationsBlueprint
 from app.views.users import usersBlueprint
 from app.views.reference_tables import referencesBlueprint
 
-"""
-    Возвращаемые значения:
-        0 - всё хорошо;
-        1 - такого нет среди пользователей (или пароль не тот);
-        2 - библиотекарь нанят;
-        3 - nickname занят;
-        4 - библиотекарь не нанят;
-        5 - неизвестная команда;
-        6 - ошибка базы данных;
-        7 - книг больше нет;
-        8 - некоторая ошибка;
-        9 - нельзя удалить директора/библиотеку;
-        10 - левый пользователь;
-        11 - ожидается дата
-
-    Значения параметра cmd:
-        "send" - отправить оповещение;
-        "read" - прочитал оповещение, удалить;
-        "offer" - пригласить на работу;
-        "hire" - нанять библиотекаря;
-        "dismiss" - уволить бибилиотекаря;
-"""
-
-LATEST_VERSION = "2-0"
-LATEST_VERSION_LABEL = "2.0"
+LATEST_VERSION = "2-0-1"
+LATEST_VERSION_LABEL = "2.0.1"
 
 DOC_PAGES = {
     "start": ("Начало работы", "docs/start.html"),

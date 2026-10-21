@@ -35,8 +35,8 @@ from app.views.reference_tables import referencesBlueprint
         "dismiss" - уволить бибилиотекаря;
 """
 
-LATEST_VERSION = "1-6"
-LATEST_VERSION_LABEL = "1.6"
+LATEST_VERSION = "2-0"
+LATEST_VERSION_LABEL = "2.0"
 
 DOC_PAGES = {
     "start": ("Начало работы", "docs/start.html"),

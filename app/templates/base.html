@@ -1,34 +1,4 @@
-<!DOCTYPE html>
-<html lang="ru">
-  <head>
-    <meta charset="UTF-8" />
-	<title>{{title}}</title>
-	<link href="{{url_for('static', filename='styles/style1.css')}}" rel="stylesheet" />
-	<link rel="icon" href="{{url_for('static', filename='images/icon.svg')}}">
-	<meta name="description" content="{{description}}">
-  </head>
-  <body>
-    <header>
-      <nav>
-        <h1>
-            <a href="/">
-                <span>Library</span>
-                <!-- <img src="{{url_for('static', filename='images/icon.svg')}}" height="50px"> -->
-            </a>
-        </h1>
-        <ul>
-          <li><a href="/guide">Гайд</a></li>
-          <li><a href="/releases">Релизы</a></li>
-        </ul>
-    </nav>
-    </header>
-    <main>
-        {% block content %}{% endblock %}
-    </main>
-    <footer>
-        <p>Пожелания и предложения пишите на почту: <a href="mailto: christianforother@gmail.com">christianforother@gmail.com</a>.</p>
-        <p>Telegram-канал: <a href="https://t.me/cfor_other_library">Library</a></p>
-        <p>Library, 2024-2025</p>
-    </footer>
-  </body>
-</html>
+<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{{ title }} · Library</title><meta name="description" content="{{ description|default('Library — электронная картотека для домашней или небольшой библиотеки.') }}"><link rel="icon" href="{{ url_for('static',filename='images/icon.svg') }}"><link rel="stylesheet" href="{{ url_for('static',filename='styles/style1.css') }}"><script defer src="{{ url_for('static',filename='scripts/theme.js') }}"></script></head><body>
+<header class="site-header"><nav class="site-nav container" aria-label="Основная навигация"><a class="brand" href="{{ url_for('index') }}"><span class="brand-mark">L</span>Library</a><div class="nav-links"><a class="{{ 'active' if request.endpoint == 'index' else '' }}" href="{{ url_for('index') }}">Главная</a><a class="{{ 'active' if request.endpoint and request.endpoint.startswith('docs') else '' }}" href="{{ url_for('docs_index') }}">Документация</a><a class="{{ 'active' if request.endpoint == 'releases' else '' }}" href="{{ url_for('releases') }}">Скачать</a><a href="https://t.me/cfor_other_library">Telegram</a></div><div class="nav-actions"><button class="theme-toggle" type="button" aria-label="Включить тёмную тему" title="Сменить тему"><span class="theme-icon" aria-hidden="true">🌙</span></button><a class="nav-download" href="{{ url_for('releases') }}">Скачать APK</a></div></nav><nav class="mobile-links container" aria-label="Навигация для мобильных устройств"><a href="{{ url_for('index') }}">Главная</a><a href="{{ url_for('docs_index') }}">Документация</a><a href="{{ url_for('releases') }}">Скачать</a><a href="https://t.me/cfor_other_library">Telegram</a></nav></header>
+<main>{% block content %}{% endblock %}</main>
+<footer class="site-footer"><div class="container footer-grid"><div>© 2026 Library</div><div class="footer-links"><a href="mailto:christianforother@gmail.com">christianforother@gmail.com</a><a href="https://t.me/cfor_other_library">Telegram</a><a href="{{ url_for('site_map') }}">Карта сайта</a></div></div></footer></body></html>

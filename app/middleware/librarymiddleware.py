@@ -16,7 +16,7 @@ class LibraryMiddleware:
         with self.flask_app.app_context():
             request = Request(environ)
 
-            if "library" not in request.path:
+            if request.path != "/library" and not request.path.startswith("/library/"):
                 return self.app(environ, start_response)
 
             librarian = environ["user"]["nickname"]

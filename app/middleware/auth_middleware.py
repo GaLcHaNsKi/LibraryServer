@@ -13,11 +13,12 @@ class AuthMiddleware:
         with self.flask_app.app_context():
             request = Request(environ)
 
-            if request.path.startswith(("/index", "/guide", "/apidocs", "/socket.io")) \
+            if request.path.startswith((
+                    "/index", "/guide", "/docs", "/releases", "/static",
+                    "/site-map", "/sitemap.xml", "/robots.txt", "/apidocs", "/socket.io"
+            )) \
                     or request.path == "/favicon.ico" \
                     or "/" == request.path \
-                    or request.path.startswith("/static") \
-                    or "releases" == request.path.strip("/") \
                     or request.path.startswith("/auth/register"):
                 return self.app(environ, start_response)
 

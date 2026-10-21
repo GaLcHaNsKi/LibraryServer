@@ -1,4 +1,4 @@
-from flask import abort, render_template, send_file, send_from_directory
+from flask import abort, redirect, render_template, send_file, send_from_directory, url_for
 from pathlib import Path
 
 from app import app, basedir
@@ -35,7 +35,16 @@ from app.views.reference_tables import referencesBlueprint
         "dismiss" - уволить бибилиотекаря;
 """
 
-LASTEST_VERSION = "1-6"
+LATEST_VERSION = "1-6"
+LATEST_VERSION_LABEL = "1.6"
+
+DOC_PAGES = {
+    "start": ("Начало работы", "docs/start.html"),
+    "catalog": ("Каталог и поиск", "docs/catalog.html"),
+    "lending": ("Выдача книг", "docs/lending.html"),
+    "team": ("Библиотекари", "docs/team.html"),
+    "settings": ("Настройки", "docs/settings.html"),
+}
 
 # Security is outermost so unauthenticated requests cannot send credentials or
 # large payloads over HTTP before the checks run.
@@ -64,7 +73,11 @@ def index():
         description: HTML page
     security: []
     """
-    return render_template("index.html", title="Home", LASTEST_VERSION=LASTEST_VERSION)
+    return render_template(
+        "index.html",
+        title="Главная",
+        description="Library — Android-приложение для каталога и выдачи книг в домашней или небольшой библиотеке.",
+    )
 
 
 @app.route("/guide")
@@ -79,7 +92,40 @@ def guide():
         description: HTML page
     security: []
     """
-    return render_template("guide.html", title="Guide")
+    return redirect(url_for("docs_index"), code=301)
+
+
+@app.route("/docs")
+def docs_index():
+    return render_template(
+        "docs/index.html",
+        title="Документация 2.0",
+        description="Документация по использованию приложения Library 2.0.",
+        doc_page="index",
+    )
+
+
+@app.route("/docs/2.0/<page>")
+def docs_page(page):
+    doc = DOC_PAGES.get(page)
+    if doc is None:
+        abort(404)
+    title, template = doc
+    return render_template(
+        template,
+        title=f"{title} — документация 2.0",
+        description=f"{title}: руководство по приложению Library 2.0.",
+        doc_page=page,
+    )
+
+
+@app.route("/site-map")
+def site_map():
+    return render_template(
+        "site_map.html",
+        title="Карта сайта",
+        description="Карта сайта Library: приложение, загрузка и документация.",
+    )
 
 
 @app.route("/releases")
@@ -94,7 +140,13 @@ def releases():
         description: HTML page
     security: []
     """
-    return render_template("releases.html", title="Releases")
+    return render_template(
+        "releases.html",
+        title="Скачать",
+        description="Скачать APK приложения Library для Android.",
+        latest_version=LATEST_VERSION,
+        latest_version_label=LATEST_VERSION_LABEL,
+    )
 
 
 @app.route("/releases/<apk>")
@@ -151,7 +203,19 @@ def sitemap():
         description: XML file
     security: []
     """
-    return send_file(
-        basedir + "/sitemap.xml",
-        mimetype="application/xml"
+    pages = [
+        url_for("index", _external=True),
+        url_for("releases", _external=True),
+        url_for("docs_index", _external=True),
+        *(url_for("docs_page", page=page, _external=True) for page in DOC_PAGES),
+        url_for("site_map", _external=True),
+    ]
+    return (
+        render_template(
+            "sitemap.xml",
+            pages=pages,
+            last_modified="2026-10-06",
+        ),
+        200,
+        {"Content-Type": "application/xml; charset=utf-8"},
     )

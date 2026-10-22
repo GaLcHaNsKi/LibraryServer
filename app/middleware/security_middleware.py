@@ -48,7 +48,7 @@ class SecurityMiddleware:
             return self._response("HTTPS is required", 403)(environ, start_response)
 
         # Protect the whole API, with a tighter bound on credential attempts.
-        limit = 10 if path == "/auth/login" else 120
+        limit = 10 if path in {"/auth/login", "/admin/login"} else 120
         if self._is_limited((client, path), limit):
             return self._response("Too many requests", 429)(environ, start_response)
 

@@ -19,6 +19,7 @@ class User(db.Model):
     email = db.Column(db.String(35), unique=True)
     password_hash = db.Column(db.Text)
     role = db.Column(Enum(Role))
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, index=True)
 
 
 class Library(db.Model):
@@ -27,6 +28,7 @@ class Library(db.Model):
     name = db.Column(db.String(20), unique=True)
     description = db.Column(db.Text)
     director_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete="CASCADE"))
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, index=True)
 
 
 class Librarian(db.Model):
@@ -145,6 +147,7 @@ class Book(db.Model):
     location = db.relationship("Place", backref="books", foreign_keys=[location_id])
     shelve = db.relationship("Shelf", backref="books", foreign_keys=[shelve_id])
     condition = db.relationship("BookCondition", backref="books", foreign_keys=[condition_id])
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, index=True)
     __table_args__ = (
         db.UniqueConstraint('library_id', 'inventory_num'),
         CheckConstraint('transfer_year > 1000'),

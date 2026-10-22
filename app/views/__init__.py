@@ -11,6 +11,7 @@ from app.views.library import libraryBlueprint
 from app.views.notifications import notificationsBlueprint
 from app.views.users import usersBlueprint
 from app.views.reference_tables import referencesBlueprint
+from app.views.admin import adminBlueprint
 
 LATEST_VERSION = "2-0-1"
 LATEST_VERSION_LABEL = "2.0.1"
@@ -38,6 +39,7 @@ app.register_blueprint(notificationsBlueprint, url_prefix="/notifications")
 app.register_blueprint(librariansBlueprint, url_prefix="/librarians")
 app.register_blueprint(libraryBlueprint, url_prefix="/library")
 app.register_blueprint(referencesBlueprint, url_prefix="/references")
+app.register_blueprint(adminBlueprint)
 
 
 @app.route("/")

@@ -14,7 +14,7 @@ class AuthMiddleware:
             request = Request(environ)
 
             if request.path.startswith((
-                    "/index", "/guide", "/docs", "/releases", "/static",
+                    "/index", "/guide", "/docs", "/releases", "/static", "/admin",
                     "/site-map", "/sitemap.xml", "/robots.txt", "/apidocs", "/socket.io"
             )) \
                     or request.path == "/favicon.ico" \

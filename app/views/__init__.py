@@ -14,6 +14,9 @@ from app.views.reference_tables import referencesBlueprint
 
 LATEST_VERSION = "2-0-1"
 LATEST_VERSION_LABEL = "2.0.1"
+ANDROID_8_VERSION = "2-0-1"
+ANDROID_8_VERSION_LABEL = "2.0.1"
+ANDROID_8_APK = "library_2-0-1_android-8-plus.apk"
 
 DOC_PAGES = {
     "start": ("Начало работы", "docs/start.html"),
@@ -123,6 +126,9 @@ def releases():
         description="Скачать APK приложения Library для Android.",
         latest_version=LATEST_VERSION,
         latest_version_label=LATEST_VERSION_LABEL,
+        android_8_version=ANDROID_8_VERSION,
+        android_8_version_label=ANDROID_8_VERSION_LABEL,
+        android_8_apk=ANDROID_8_APK,
     )
 
 

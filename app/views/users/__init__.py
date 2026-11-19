@@ -1,9 +1,30 @@
 from flask import Blueprint, request
 
+from app import OWNER
+from app.views.library.library_service import createLibraryForLibrarian
 from app.views.users.users_service import deleteUser, getUserInfo, editUser, selfDismissLibrarian
 from app.views.common_service import InternalErrorResponse, SuccessResponse, UserNotFoundResponse
 
 usersBlueprint = Blueprint("users", __name__)
+
+
+@usersBlueprint.route("/library", methods=["POST"])
+def create_own_library():
+    name = request.form.get("name", "").strip()
+    description = request.form.get("description", "").strip()
+    if not name or len(name) > 20:
+        return {"error": "Library name must contain from 1 to 20 characters"}, 400
+
+    result = createLibraryForLibrarian(request.environ["user"]["id"], name, description)
+    if result == "created":
+        return {"role": OWNER}, 201
+    if result == "missing":
+        return UserNotFoundResponse
+    if result == "forbidden":
+        return {"error": "Only an unaffiliated librarian can create a library"}, 403
+    if result == "name_taken":
+        return {"error": "Library name is taken"}, 409
+    return InternalErrorResponse
 
 
 @usersBlueprint.route("/info", methods=["GET"])

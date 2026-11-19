@@ -1,6 +1,50 @@
+from sqlalchemy.exc import IntegrityError
+
 from app.views.logs import elog
 from app import db
 from app.models import Library, Director, Librarian, User, Role, Book, OnHandsBook
+
+
+def createLibraryForLibrarian(user_id, name, description):
+    try:
+        # Serialize requests for this account and coordinate with offer acceptance,
+        # which locks the Librarian row before attaching it to a library.
+        user = db.session.get(User, user_id, with_for_update=True)
+        if user is None:
+            return "missing"
+        if user.role != Role.LIBRARIAN:
+            return "forbidden"
+
+        librarian = Librarian.query.filter_by(user_id=user_id).with_for_update().first()
+        if librarian and (librarian.is_hired or librarian.library_id is not None):
+            return "forbidden"
+
+        director = Director.query.filter_by(user_id=user_id).first()
+        if director and director.library_id is not None:
+            return "forbidden"
+
+        library = Library(name=name, description=description, director_id=user_id)
+        db.session.add(library)
+        db.session.flush()
+        if director is None:
+            db.session.add(Director(user_id=user_id, library_id=library.id))
+        else:
+            director.library_id = library.id
+        if librarian is not None:
+            db.session.delete(librarian)
+        user.role = Role.OWNER
+        db.session.commit()
+        return "created"
+    except IntegrityError as e:
+        db.session.rollback()
+        if Library.query.filter_by(name=name).first() is not None:
+            return "name_taken"
+        elog(e, "library_service", "createLibraryForLibrarian")
+        return "error"
+    except Exception as e:
+        db.session.rollback()
+        elog(e, "library_service", "createLibraryForLibrarian")
+        return "error"
 
 
 def getLibraryInfo(libraryId):

@@ -25,7 +25,7 @@ class AuthMiddleware:
             res = Response('{"error":"Unauthorized"}', 401, mimetype="application/json")
 
             auth = request.authorization
-            if not auth:
+            if not auth or auth.type != "basic" or not auth.username or not auth.password:
                 return res(environ, start_response)
 
             nickname, password = auth["username"], auth["password"]

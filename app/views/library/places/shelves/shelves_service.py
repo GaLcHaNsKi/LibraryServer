@@ -18,9 +18,9 @@ def getShelves(libraryId: int, placeId: int) -> list[dict] | int:
         return 1
 
 
-def getShelveById(libraryId: int, shelveId: int) -> dict | int:
+def getShelveById(libraryId: int, placeId: int, shelveId: int) -> dict | int:
     try:
-        shelf = Shelf.query.join(Place).filter(Shelf.id==shelveId, Place.library_id==libraryId).first()
+        shelf = Shelf.query.join(Place).filter(Shelf.id==shelveId, Shelf.place_id==placeId, Place.library_id==libraryId).first()
         if not shelf:
             return -1
 
@@ -55,9 +55,9 @@ def addShelf(libraryId: int, placeId: int, shelf_name: str, description: str) ->
         elog(e, "shelve_service", "addShelf")
         return 1
 
-def editShelf(libraryId: int, shelveId: int, shelf_name: str, description: str) -> int:
+def editShelf(libraryId: int, placeId: int, shelveId: int, shelf_name: str, description: str) -> int:
     try:
-        shelf = Shelf.query.join(Place).filter(Shelf.id==shelveId, Place.library_id==libraryId).first()
+        shelf = Shelf.query.join(Place).filter(Shelf.id==shelveId, Shelf.place_id==placeId, Place.library_id==libraryId).first()
         if not shelf:
             return -1
 
@@ -80,9 +80,9 @@ def editShelf(libraryId: int, shelveId: int, shelf_name: str, description: str) 
         return 1
 
 
-def deleteShelf(libraryId: int, shelveId: int) -> int:
+def deleteShelf(libraryId: int, placeId: int, shelveId: int) -> int:
     try:
-        shelf = Shelf.query.join(Place).filter(Shelf.id==shelveId, Place.library_id==libraryId).first()
+        shelf = Shelf.query.join(Place).filter(Shelf.id==shelveId, Shelf.place_id==placeId, Place.library_id==libraryId).first()
         if not shelf:
             return -1
 

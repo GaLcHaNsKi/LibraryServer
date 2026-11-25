@@ -31,7 +31,7 @@ def sendShelvesListRoute(placeId):
     return shelves_list
 
 @shelvesBlueprint.route("/<shelveId>", methods=["GET"])
-def getShelveByIdRoute(shelveId):
+def getShelveByIdRoute(placeId, shelveId):
     """
     ---
     tags:
@@ -49,7 +49,7 @@ def getShelveByIdRoute(shelveId):
         description: Internal Server Error
     """
     libraryId = request.environ["user"]["libraryId"]
-    shelve = getShelveById(libraryId, shelveId)
+    shelve = getShelveById(libraryId, placeId, shelveId)
 
     if shelve == 1:
         return InternalErrorResponse
@@ -59,7 +59,7 @@ def getShelveByIdRoute(shelveId):
     return shelve
 
 @shelvesBlueprint.route("/<shelveId>", methods=["DELETE"])
-def deleteShelfRoute(shelveId):
+def deleteShelfRoute(placeId, shelveId):
     """
     ---
     tags:
@@ -77,7 +77,7 @@ def deleteShelfRoute(shelveId):
         description: Internal Server Error
     """
     libraryId = request.environ["user"]["libraryId"]
-    code = deleteShelf(libraryId, shelveId)
+    code = deleteShelf(libraryId, placeId, shelveId)
     if code == -1:
         return {"error": "Shelf not found"}, 404
     if code:
@@ -86,7 +86,7 @@ def deleteShelfRoute(shelveId):
     return SuccessResponse
 
 @shelvesBlueprint.route("/<shelveId>", methods=["PUT"])
-def editShelfRoute(shelveId):
+def editShelfRoute(placeId, shelveId):
     """
     ---
     tags:
@@ -117,7 +117,7 @@ def editShelfRoute(shelveId):
     shelf_name = request.form.get("shelf_name")
     description = request.form.get("description")
 
-    code = editShelf(libraryId, shelveId, shelf_name, description)
+    code = editShelf(libraryId, placeId, shelveId, shelf_name, description)
     if code == -1:
         return {"error": "Shelf not found"}, 404
     if code == 2:

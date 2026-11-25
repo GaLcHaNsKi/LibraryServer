@@ -114,7 +114,7 @@ def editShelfRoute(placeId, shelveId):
         description: Internal Server Error
     """
     libraryId = request.environ["user"]["libraryId"]
-    shelf_name = request.form.get("shelf_name")
+    shelf_name = request.form.get("shelf_name", request.form.get("shelve_name"))
     description = request.form.get("description")
 
     code = editShelf(libraryId, placeId, shelveId, shelf_name, description)

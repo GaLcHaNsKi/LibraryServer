@@ -13,11 +13,11 @@ from app.views.users import usersBlueprint
 from app.views.reference_tables import referencesBlueprint
 from app.views.admin import adminBlueprint
 
-LATEST_VERSION = "2-1-1"
-LATEST_VERSION_LABEL = "2.1.1"
-ANDROID_8_VERSION = "2-1-1"
-ANDROID_8_VERSION_LABEL = "2.1.1"
-ANDROID_8_APK = "library_2-1-1_android-8-plus.apk"
+LATEST_VERSION = "2-1-1-1"
+LATEST_VERSION_LABEL = "2.1.1.1"
+ANDROID_8_VERSION = "2-1-1-1"
+ANDROID_8_VERSION_LABEL = "2.1.1.1"
+ANDROID_8_APK = "library_2-1-1-1_android-8-plus.apk"
 
 DOC_PAGES = {
     "start": ("Начало работы", "docs/start.html"),
